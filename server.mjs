@@ -27,4 +27,4 @@ createServer(async (request, response) => {
   } catch {
     response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }).end('Not found');
   }
-}).listen(port, '127.0.0.1', () => console.log(`Connector Tracker available at http://localhost:${port}`));
+}).listen(port, '0.0.0.0', () => console.log(`Connector Tracker listening on port ${port}`));
