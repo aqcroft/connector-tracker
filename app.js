@@ -517,7 +517,7 @@ async function boot() {
     if (item) { state.selectedConnectorId = item.id; state.period = 'This month'; state.route = 'reports'; state.reportTab = 'shared'; }
     else publicReportError = true;
   }
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(error => console.warn('Offline cache could not be installed.', error));
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register(new URL('sw.js', document.baseURI)).catch(error => console.warn('Offline cache could not be installed.', error));
   render();
 }
 boot();

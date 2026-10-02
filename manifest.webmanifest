@@ -2,9 +2,9 @@
   "name": "Connector Performance Tracker",
   "short_name": "Connector Tracker",
   "description": "Local-first Connector activity and results tracker.",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f7f6fa",
   "theme_color": "#351065",
-  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }

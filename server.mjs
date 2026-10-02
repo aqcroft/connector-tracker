@@ -17,7 +17,8 @@ createServer(async (request, response) => {
   let pathname;
   try { pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname); }
   catch { response.writeHead(400).end('Bad request'); return; }
-  const requested = resolve(root, `.${pathname === '/' ? '/index.html' : pathname}`);
+  const deploymentPath = pathname === '/connector-tracker' ? '/' : pathname.startsWith('/connector-tracker/') ? pathname.slice('/connector-tracker'.length) : pathname;
+  const requested = resolve(root, `.${deploymentPath === '/' ? '/index.html' : deploymentPath}`);
   if (requested !== root && !requested.startsWith(`${root}${sep}`)) { response.writeHead(403).end('Forbidden'); return; }
   try {
     const body = await readFile(requested);
