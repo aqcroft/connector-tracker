@@ -388,3 +388,36 @@
   content: "Profile";
   font-size: 10px;
 }
+/* Funnel refinement: linked record detail, profile identity and connector theming. */
+.app-shell { --brand-primary: #351065; --brand-accent: #5c2e9a; --brand-on-primary: #fff; --brand-on-accent: #fff; }
+.btn-primary { background: var(--brand-primary); color: var(--brand-on-primary); }
+.btn-primary:hover { filter: brightness(.93); }
+.nav-btn.active { color: var(--brand-accent); border-left: 3px solid var(--brand-accent); padding-left: 8px; }
+.nav-btn.active .nav-icon { color: var(--brand-accent); }
+.filter-chip.active { border-color: var(--brand-accent); color: var(--brand-accent); }
+.brand-mark { overflow: hidden; }
+.brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+.connector-mini-logo { width: 25px; height: 25px; border-radius: 50%; overflow: hidden; display: inline-grid; place-items: center; background: white; border: 1px solid var(--line); }
+.connector-mini-logo img { width: 100%; height: 100%; object-fit: contain; }
+.profile-name-button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 9px 4px 4px; color: var(--ink); font-size: 11px; font-weight: 700; }
+.profile-name-button .avatar { width: 26px; height: 26px; }
+.followup-presets { margin: 12px 0; }
+.followup-presets .filter-row { margin: 6px 0 10px; }
+.validation-message { color: #a82d38; background: #fff2f2; border-radius: 6px; padding: 8px 10px; font-size: 11px; }
+.lead-origin-chips { margin: 6px 0 3px; }
+.funnel-drill-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.funnel-drilldown h3 { margin: 0 0 8px; font-size: 13px; }
+.funnel-person { width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; display: grid; grid-template-columns: 1fr auto; }
+.funnel-person strong { font-size: 12px; }
+.funnel-person small { color: var(--muted); }
+.funnel-person > span { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--brand-accent); font-size: 10px; font-weight: 700; }
+.twenty-k-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.twenty-k-row > strong { font-size: 12px; }
+.lead-event-field[hidden] { display: none; }
+.toast { bottom: min(22vh, 190px); z-index: 40; pointer-events: none; }
+.toast-undo { pointer-events: auto; border: 0; background: #fff; color: #241637; font-weight: 800; border-radius: 5px; min-height: 34px; padding: 0 12px; margin-left: 8px; }
+@media (max-width: 760px) {
+  .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .funnel-drill-grid { grid-template-columns: 1fr; }
+  .profile-name-button { font-size: 0; padding-right: 4px; }
+}

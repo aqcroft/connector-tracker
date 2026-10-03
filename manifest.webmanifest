@@ -1,7 +1,7 @@
 {
-  "name": "Connector Performance Tracker",
-  "short_name": "Connector Tracker",
-  "description": "Local-first Connector activity and results tracker.",
+  "name": "Connector CRM",
+  "short_name": "Connector CRM",
+  "description": "Local-first Connector activity and results CRM.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f7f6fa",

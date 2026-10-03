@@ -1,4 +1,4 @@
-# Connector Performance Tracker
+# Connector CRM
 
 Standalone, mobile-first PWA prototype for Leicester Dynamite Connector activity and results. It includes the core workflows from the supplied build brief and persists local changes in IndexedDB, with a localStorage fallback.
 
@@ -18,4 +18,4 @@ The initial dataset includes Adrian, Salima, Destiny, Leicester Dynamite, a samp
 
 The current application version and changelog live in `app-meta.js`. Every future code, UI, or behaviour change must increment the semantic version, update its change summary, keep Setup/Admin -> About current, and update dependent cache versioning automatically. Use PATCH for fixes and small polish, MINOR for meaningful functionality or substantial workflow changes, and MAJOR only when explicitly appropriate.
 
-Every displayed commission value is labelled test data. Do not use these placeholder amounts for real earnings or Connector income. Public report links are not published in this local build; the shared report view and device share-sheet summary contain aggregate metrics only.
+New commission calculations use the central CRM service-count rules and the £0/£50/£100/£250/£300 band lookup requested for this workflow. Existing saved commission snapshots remain as historical values. Public report links are not published in this local build; the shared report view and device share-sheet summary contain aggregate metrics only.
