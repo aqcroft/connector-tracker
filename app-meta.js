@@ -1,7 +1,8 @@
 window.APP_META = {
-  version: '0.8.0',
+  version: '0.9.0',
   released: '2026-10-03',
   summary: [
+    'Next-action UX experiment: Event Day snapshot, recent people, progressive Lead steps and a data-derived Action Inbox',
     'Named 20Ks can convert into linked Leads, with quick selection and duplicate-link protection',
     'Event Day Leads inherit Event and 20K Event channel; standalone Leads keep independent source fields',
     'Appointment and follow-up dates validate before saving, with date presets and reversible milestones',
@@ -12,6 +13,7 @@ window.APP_META = {
     'Profile photos, Connector logos and configurable brand colours are supported'
   ],
   history: [
+    { version: '0.9.0', date: '2026-10-03', summary: 'Next-action UX experiment with Event Day progress and recent people, progressive Lead guidance, derived Action Inbox and actionable funnel leakage.' },
     { version: '0.8.0', date: '2026-10-03', summary: 'Linked funnel records, reliable appointment and follow-up workflows, detailed leakage lists, service commission lookup, and configurable profiles and branding.' },
     { version: '0.7.1', date: '2026-10-03', summary: 'Fixed Action Inbox outcome updates and aligned historical customer result labels.' },
     { version: '0.7.0', date: '2026-10-03', summary: 'Named Event 20Ks, one-way Lead creation, simpler mobile navigation, independent progression milestones and compact funnel reporting.' },

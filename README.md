@@ -10,6 +10,10 @@ node server.mjs
 
 Open [http://localhost:4173](http://localhost:4173). The service worker caches the app shell for offline use. Browser data stays on the device; the outbox is prepared for future sync, but no cloud endpoint is connected.
 
+## Next Action UX experiment
+
+The `ux-next-action-experiment` branch publishes a public, phone-friendly GitHub Pages preview at [https://aqcroft.github.io/connector-tracker/ux-next-action-experiment/](https://aqcroft.github.io/connector-tracker/ux-next-action-experiment/). The preview workflow deploys when that branch is pushed. Its sample workspace uses separate browser storage from the main app; preview data remains on that device and does not sync between devices.
+
 ## Prototype data
 
 The initial dataset includes Adrian, Salima, Destiny, Leicester Dynamite, a sample 20K activation, sample Leads, and editable test commission rules. The sample Partner switcher is for previewing roles on one device. A real authenticated account and server-side Connector access check must be added with the cloud API.

@@ -421,3 +421,22 @@
   .funnel-drill-grid { grid-template-columns: 1fr; }
   .profile-name-button { font-size: 0; padding-right: 4px; }
 }
+
+/* Next-action experiment: keep Event Day and the immediate Lead step in front. */
+.today-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 13px;padding:9px;background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:10px}
+.today-progress button{min-width:0;border:0;border-radius:7px;background:transparent;padding:6px 3px;text-align:center;color:var(--ink)}
+.today-progress button:hover{background:#fff}
+.today-progress strong{display:block;font-size:16px;line-height:1.2;color:var(--brand-primary,var(--purple))}
+.today-progress span{display:block;margin-top:3px;font-size:9px;color:var(--muted)}
+.recent-person{display:flex;align-items:center;gap:8px;width:100%;padding:10px 3px;border:0;border-top:1px solid #f0edf3;background:transparent;text-align:left;color:var(--ink);font-size:11px}
+.recent-person strong{min-width:78px}
+.recent-person span{flex:1;color:var(--muted)}
+.recent-person:hover{color:var(--brand-primary,var(--purple))}
+.next-action-card{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:13px 15px;border:1px solid color-mix(in srgb,var(--brand-primary,#c8102e) 28%,white);border-left:4px solid var(--brand-primary,#c8102e);border-radius:9px;background:color-mix(in srgb,var(--brand-primary,#c8102e) 5%,white)}
+.next-action-card .eyebrow{margin:0;color:var(--brand-primary,var(--purple));font-size:9px}
+.next-action-card strong{flex:1;font-size:13px}
+.next-action-card .btn{white-space:nowrap}
+.suggested-followup{margin-top:14px;border-color:#eaddec}
+.inbox-card{align-items:center}
+.inbox-card .lead-main p{font-weight:700;color:var(--brand-primary,var(--purple))}
+@media(max-width:680px){.today-progress{gap:2px;padding:6px}.today-progress strong{font-size:14px}.today-progress span{font-size:8px}.next-action-card{align-items:flex-start;flex-wrap:wrap;gap:7px}.next-action-card strong{flex-basis:100%;order:1}.next-action-card .eyebrow{flex:1}.next-action-card .btn{order:2}}
