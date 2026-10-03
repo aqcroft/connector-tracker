@@ -1,7 +1,7 @@
 const CHANNELS = ['20K Event', 'WhatsApp', 'Facebook', 'Instagram', 'Social media', 'Website', 'Email', 'Physical signage', 'QR', 'Other', 'Unknown'];
 const COMMISSION_BANDS = [0, 50, 100, 250, 300];
 const APP = window.APP_META || { version: '0.4.0', released: new Date().toISOString().slice(0, 10), summary: [], history: [] };
-const STORAGE_SUFFIX = APP.version === '0.9.0' ? '-ux-next-action-experiment' : '';
+const STORAGE_SUFFIX = APP.version.startsWith('0.9.') ? '-ux-next-action-experiment' : '';
 const PARTNERS = [{ id: 'adrian', name: 'Adrian', role: 'Admin', active: true }, { id: 'salima', name: 'Salima', role: 'Partner', active: true }, { id: 'destiny', name: 'Destiny', role: 'Partner', active: true }];
 const STATUSES = ['Booked', 'Sat', 'Cancelled', 'Ghosted / No-show'];
 const CUSTOMER_OUTCOMES = ['Customer signed up', 'No for now', 'Not discussed / N/A'];
@@ -940,7 +940,9 @@ function render() {
       }
       const customerControls = app.querySelector('[data-set-customer]')?.closest('.outcome-grid, .appointment-grid');
       if (customerControls) customerControls.id = 'customer-result';
-      if (['Cancelled', 'Ghosted / No-show'].includes(appointmentOutcome(lead)) && !lead.followUp && action?.target === 'followup') {
+      if (lead.followUp) {
+        app.querySelector('.content')?.insertAdjacentHTML('beforeend', `<section class="panel suggested-followup"><h2>Follow-up</h2><p class="small muted">Review this Lead again on the selected date.</p>${followupPresetMarkup(lead.reviewDate)}<button type="button" class="btn btn-secondary" data-result-followup="none">No follow-up</button></section>`);
+      } else if (['Cancelled', 'Ghosted / No-show'].includes(appointmentOutcome(lead)) && action?.target === 'followup') {
         app.querySelector('.content')?.insertAdjacentHTML('beforeend', `<section class="panel suggested-followup"><h2>Follow-up suggestion</h2><p class="small muted">Choose a reminder or leave this Lead without a follow-up.</p>${followupPresetMarkup(lead.reviewDate)}<button type="button" class="btn btn-secondary" data-result-followup="none">No follow-up</button></section>`);
       }
       if (nextLeadFocus) {
