@@ -12,7 +12,7 @@ Open [http://localhost:4173](http://localhost:4173). The service worker caches t
 
 ## Next Action UX experiment
 
-The `ux-next-action-experiment` branch publishes a public, phone-friendly GitHub Pages preview at [https://aqcroft.github.io/connector-tracker/ux-next-action-experiment/](https://aqcroft.github.io/connector-tracker/ux-next-action-experiment/). The preview workflow deploys when that branch is pushed. Its sample workspace uses separate browser storage from the main app; preview data remains on that device and does not sync between devices.
+Open the public, phone-friendly [Next Action UX branch preview](https://htmlpreview.github.io/?https://github.com/aqcroft/connector-tracker/blob/ux-next-action-experiment/index.html). Its sample workspace uses separate browser storage from the main app; preview data remains on that device and does not sync between devices. GitHub Pages is currently restricted to deploy from `main`, so the branch preview uses GitHub's HTML preview service instead of changing the repository's Pages deployment settings.
 
 ## Prototype data
 
