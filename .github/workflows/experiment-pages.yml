@@ -14,7 +14,7 @@ concurrency:
 jobs:
   deploy:
     environment:
-      name: github-pages
+      name: connector-preview
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
