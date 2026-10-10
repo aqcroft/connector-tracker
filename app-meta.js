@@ -1,7 +1,8 @@
 window.APP_META = {
-  version: '0.9.0',
-  released: '2026-10-04',
+  version: '0.10.0',
+  released: '2026-10-10',
   summary: [
+    'Added shared Partner sign-in, server-checked Connector access and a cloud create/read/update check; CRM workflows remain local-only until Phase 2 cloud wiring',
     'Event Day now has one Connector-branded Event banner, matched Add 20K / Add Lead actions and an expandable Event-wide progress strip',
     'Named 20Ks convert directly into linked Lead profiles; standalone Add Lead remains unchanged',
     'Follow-up presets fit one compact row, and SIM quantities use direct 1–4 selection with clear qualifying-service rules',
@@ -10,6 +11,7 @@ window.APP_META = {
     'Home and Event navigation icons are refreshed; internal Connector codes are hidden from normal workflow headings'
   ],
   history: [
+    { version: '0.10.0', date: '2026-10-10', summary: 'Added the Phase 1 authenticated cloud workspace, shared Partner identity verification, Connector access checks and a cloud test-record workflow; existing CRM records remain local-only until Phase 2.' },
     { version: '0.9.0', date: '2026-10-04', summary: 'Event Day simplification, Event-wide progress breakdown, direct 20K conversion, compact follow-ups and SIM selection, mobile report navigation, and corrected Connector commission.' },
     { version: '0.8.0', date: '2026-10-03', summary: 'Linked funnel records, reliable appointment and follow-up workflows, detailed leakage lists, service commission lookup, and configurable profiles and branding.' },
     { version: '0.7.1', date: '2026-10-03', summary: 'Fixed Action Inbox outcome updates and aligned historical customer result labels.' },

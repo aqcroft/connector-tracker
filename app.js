@@ -56,6 +56,14 @@ let publicReportError = false;
 let toastTimer;
 let undoAction = null;
 let followupDraft = null;
+let demoMode = new URLSearchParams(location.search).get('demo') === '1';
+let cloudSession = null;
+let cloudConnectorId = '';
+let cloudTestRecord = null;
+let cloudMessage = '';
+let cloudBusy = false;
+let cloudError = '';
+let cloudPartnerIdDraft = '';
 const app = document.getElementById('app');
 const toastNode = document.getElementById('toast');
 app.addEventListener('submit', event => {
@@ -531,7 +539,7 @@ function eventDayView() {
   activeActivityId = activity.id; const leads = activityLeads(activity.id); const forms = state.stats.filter(stat => stat.activityId === activity.id).reduce((sum, stat) => sum + stat.forms20K, 0); const mine = statFor(activity.id, state.currentUserId);
   return `${heading('Event Day', `${escapeHtml(activity.name)} · ${prettyDate(activity.date)}`, `<button class="btn btn-secondary" data-edit-activity="${activity.id}">Edit Activity</button>`)}<div class="event-day-hero"><div><div class="eyebrow">LIVE WORKSPACE</div><h2>${escapeHtml(activity.name)}</h2><p>${escapeHtml(activity.channel)} · ${leads.length} Leads linked today</p></div><span class="badge green">Today</span></div><div class="event-day-actions"><button class="event-day-button" data-count="1"><strong>+ 20K</strong><small>Add one form to my count (${mine})</small></button><button class="event-day-button" data-action="event-fast-lead"><strong>＋ Lead</strong><small>Add a Lead from this Event</small></button></div><div class="panel event-day-progress"><div class="panel-head"><div><h2>Progress</h2><p>Keep the next tap close</p></div><span class="badge green">${forms} team 20K</span></div><div class="quick-grid"><button class="quick-action" data-route="event"><span class="quick-icon">✓</span><span><strong>Quote sent</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">▣</span><span><strong>Appointment set</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">★</span><span><strong>Signed up</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">◎</span><span><strong>Open Leads</strong><small>Review this Event</small></span></button></div></div>`;
 }
-function aboutView() { return `${heading('About', 'Connector CRM release information.') }<div class="panel about-panel"><div class="brand about-brand"><div class="brand-mark">${logoMarkup(connector())}</div><div><div class="brand-name">Connector CRM</div><div class="brand-kicker">${escapeHtml(connector()?.name || 'Workspace')}</div></div></div><div class="about-version">Version ${escapeHtml(APP.version)}</div><p class="muted">A local-first Connector activity and results tracker.</p><div class="section-title">What's new</div><ul class="about-list">${APP.summary.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><div class="section-title">Version history</div><div class="activity-list">${APP.history.map(item => `<div class="activity-row"><div class="activity-symbol">#</div><div class="activity-copy"><strong>v${escapeHtml(item.version)}</strong><small>${prettyDate(item.date)} · ${escapeHtml(item.summary)}</small></div></div>`).join('')}</div></div>`; }
+function aboutView() { return `${heading('About', 'Connector CRM release information.') }<div class="panel about-panel"><div class="brand about-brand"><div class="brand-mark">${logoMarkup(connector())}</div><div><div class="brand-name">Connector CRM</div><div class="brand-kicker">${escapeHtml(connector()?.name || 'Workspace')}</div></div></div><div class="about-version">Version ${escapeHtml(APP.version)}</div><p class="muted">${demoMode ? 'Local demo only. Changes stay on this device and are not connected to the cloud.' : 'Authenticated Connector activity and results tracker.'}</p><div class="section-title">What's new</div><ul class="about-list">${APP.summary.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><div class="section-title">Version history</div><div class="activity-list">${APP.history.map(item => `<div class="activity-row"><div class="activity-symbol">#</div><div class="activity-copy"><strong>v${escapeHtml(item.version)}</strong><small>${prettyDate(item.date)} · ${escapeHtml(item.summary)}</small></div></div>`).join('')}</div></div>`; }
 function homeView() { const leads = periodLeads(selectedLeads()); const m = metrics(leads); const outstanding = needsUpdateLeads(selectedLeads()).length; return `${heading(`Good ${greeting()}, ${currentUser().name}`, 'What do you want to do?', '')}<div class="home-actions home-actions-v05">${homeAction('eventday', '🏀', 'EVENT DAY', "Run today's event")}${homeAction('leads', '👥', 'LEADS', 'Add and manage Leads')}${homeAction('inbox', '📥', 'ACTION INBOX', `${outstanding} Lead${outstanding === 1 ? '' : 's'} need updating`)}${homeAction('progress', '📊', 'RESULTS', "See what's working")}${homeAction('activities', '📚', 'ACTIVITIES', 'Plan and review Events, Campaigns and Ongoing activity')}</div><div class="monthly-snapshot"><div><strong>This month</strong><span>${m.forms} 20Ks · ${m.leads} Leads · ${m.booked} Set · ${m.sat} Sat · ${m.customers} Customers</span></div><button class="text-link" data-route="progress">View Results →</button></div><button class="setup-link" data-route="connectors">⚙ Setup / Admin</button>`; }
 function leadsView() { const query = state.search.toLowerCase(); const scoped = isConnectorAdmin() && leadScope === 'my' ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId) : selectedLeads(); const filtered = scoped.filter(lead => { const match = !query || `${lead.name} ${lead.channel} ${customerOutcome(lead)} ${userName(lead.partnerId)}`.toLowerCase().includes(query); const metric = leadFilter === 'leads' || leadFilter === 'all' ? true : leadFilter === 'set' ? historyHas(lead,'Booked') || ['Booked','Sat'].includes(lead.appointment) : leadFilter === 'sat' ? historyHas(lead,'Sat') || lead.appointment === 'Sat' : leadFilter === 'customers' ? outcomeIsCustomer(lead) : leadFilter === 'partners' ? partnerOutcome(lead) === 'Became a UW Partner' || lead.becamePartner : true; return match && metric; }); const labels = { leads: 'Leads', set: 'Appointments set', sat: 'Appointments sat', customers: 'Customers', partners: 'Partners' }; const contextual = labels[leadFilter] || ''; const back = contextual ? `<button class="context-back" data-route="progress">‹ Results</button>` : ''; const title = contextual || 'Leads'; const subtitle = contextual ? `${filtered.length} people · ${state.period}` : 'Add, manage and progress Leads.'; const scopeSwitch = isConnectorAdmin() ? `<div class="filter-row"><button class="filter-chip ${leadScope==='my'?'active':''}" data-lead-scope="my">My Leads</button><button class="filter-chip ${leadScope==='team'?'active':''}" data-lead-scope="team">Team Leads</button></div>` : ''; return `${back}${heading(title, subtitle, `<button class="btn btn-primary" data-action="newlead">＋ Add Lead</button>`)}${scopeSwitch}${leadFilter !== 'all' ? `<div class="callout" style="margin-bottom:12px">Showing ${escapeHtml(title.toLowerCase())} from ${state.period.toLowerCase()}.</div>` : ''}<div class="split-head" style="margin-bottom:12px"><div class="searchbox"><input data-search placeholder="Search Leads" value="${escapeHtml(state.search)}" aria-label="Search Leads"></div><span class="small muted">${filtered.length} active Leads</span></div><div class="lead-list">${filtered.length ? filtered.map(leadCard).join('') : '<div class="empty-state"><strong>No Leads match</strong>Add a Lead or adjust your search.</div>'}</div>`; }
 
@@ -771,7 +779,7 @@ function shell(content, title) {
   const periodControl = state.route === 'progress'
     ? `<select class="period-select" data-period aria-label="Results period">${periods.map(period => `<option ${period === state.period ? 'selected' : ''}>${period}</option>`).join('')}</select>`
     : '';
-  return `<div class="app-shell" style="--brand-primary:${primary};--brand-accent:${accent};--brand-on-primary:${readableText(primary)};--brand-on-accent:${readableText(accent)}"><aside class="sidebar"><div class="brand"><div class="brand-mark">${logoMarkup(brand)}</div><div><div class="brand-name">Connector CRM</div><div class="brand-kicker">${escapeHtml(brand?.name || 'Workspace')}</div></div></div><div class="side-label">Workspace</div><nav class="nav-list" aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><div class="local-state"><strong>✓ Saved on this device</strong>${state.outbox.length ? `${state.outbox.length} local change${state.outbox.length === 1 ? '' : 's'} queued` : 'Cloud sync is not connected'}</div><button class="profile-switch" data-action="profile"><span class="avatar">${avatarMarkup(user)}</span><span class="profile-copy"><span class="profile-name">${escapeHtml(user.name)}</span><span class="profile-role">${user.role === 'Admin' ? 'Team Admin' : 'Partner'} · Setup & profile</span></span><span aria-hidden="true">⌄</span></button></div></aside><main class="main-area"><header class="topbar"><div class="crumbs"><span class="connector-mini-logo">${logoMarkup(brand)}</span><span class="connector-context">${escapeHtml(brand?.name || 'Connector')}</span><span aria-hidden="true">›</span><strong>${escapeHtml(title)}</strong></div><div class="top-actions"><span class="sync-pill" title="Changes are stored on this device. Cloud sync is not connected.">● On this device</span>${periodControl}<button class="profile-name-button" data-action="profile" title="Profile and setup"><span class="avatar">${avatarMarkup(user)}</span>${escapeHtml(user.name)}</button></div></header><section class="content">${content}</section></main><nav class="mobile-nav" aria-label="Main navigation">${mobileNav}</nav></div>`;
+  return `<div class="app-shell" style="--brand-primary:${primary};--brand-accent:${accent};--brand-on-primary:${readableText(primary)};--brand-on-accent:${readableText(accent)}"><aside class="sidebar"><div class="brand"><div class="brand-mark">${logoMarkup(brand)}</div><div><div class="brand-name">Connector CRM</div><div class="brand-kicker">${escapeHtml(brand?.name || 'Workspace')}</div></div></div><div class="side-label">Workspace</div><nav class="nav-list" aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><div class="local-state"><strong>${demoMode ? 'Demo · saved on this device' : '✓ Saved on this device'}</strong>${state.outbox.length ? `${state.outbox.length} local change${state.outbox.length === 1 ? '' : 's'} queued` : 'Cloud sync is not connected'}</div><button class="profile-switch" data-action="profile"><span class="avatar">${avatarMarkup(user)}</span><span class="profile-copy"><span class="profile-name">${escapeHtml(user.name)}</span><span class="profile-role">${user.role === 'Admin' ? 'Team Admin' : 'Partner'} · Setup & profile</span></span><span aria-hidden="true">⌄</span></button></div></aside><main class="main-area"><header class="topbar"><div class="crumbs"><span class="connector-mini-logo">${logoMarkup(brand)}</span><span class="connector-context">${escapeHtml(brand?.name || 'Connector')}</span><span aria-hidden="true">›</span><strong>${escapeHtml(title)}</strong></div><div class="top-actions"><span class="sync-pill" title="${demoMode ? 'Local demo data only. Cloud sync is not connected.' : 'Changes are stored on this device. Cloud sync is not connected.'}">${demoMode ? '● Demo' : '● On this device'}</span>${periodControl}<button class="profile-name-button" data-action="profile" title="Profile and setup"><span class="avatar">${avatarMarkup(user)}</span>${escapeHtml(user.name)}</button></div></header>${demoMode ? '<div class="demo-banner">Local demo · changes stay on this device. Sign in from the app launch page to use the cloud workspace.</div>' : ''}<section class="content">${content}</section></main><nav class="mobile-nav" aria-label="Main navigation">${mobileNav}</nav></div>`;
 }
 function homeView() { return eventDayView(); }
 function homeViewV07() {
@@ -918,7 +926,36 @@ function chooseProfile() {
   openModal('Profile and setup', `<form id="profile-form"><div class="field"><label>Your profile name</label><input name="name" maxlength="60" required value="${escapeHtml(user.name)}"></div><div class="field" style="margin-top:10px"><label>Profile photo · optional</label><input name="avatar" type="file" accept="image/*"></div><div class="modal-actions"><button class="btn btn-primary">Save profile</button>${user.role === 'Admin' ? '<button type="button" class="btn btn-secondary" data-action="new-profile">＋ Create profile</button>' : ''}</div></form><div class="lead-list" style="margin-top:15px">${state.users.filter(item => item.active).map(item => `<button class="connector-card profile-option" data-switch-user="${item.id}"><span class="avatar">${avatarMarkup(item)}</span><span class="connector-meta"><strong>${escapeHtml(item.name)}</strong><span>${item.role === 'Admin' ? 'Team Admin' : 'Partner'}</span></span>${item.id === state.currentUserId ? '<span class="badge green">Current</span>' : ''}</button>`).join('')}</div><div class="profile-menu-actions"><button class="btn btn-secondary" data-route="connectors">⚙ Setup / Admin</button><button class="btn btn-secondary" data-route="about">About · v${escapeHtml(APP.version)}</button></div>`);
 }
 function openNewProfileForm() { openModal('Create profile', `<form id="create-profile-form"><div class="field"><label>Person / profile name</label><input name="name" required maxlength="60"></div><div class="field" style="margin-top:10px"><label>Profile photo · optional</label><input name="avatar" type="file" accept="image/*"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="profile">Cancel</button><button class="btn btn-primary">Create profile</button></div></form>`); }
+function renderCloudLogin() {
+  const configured = window.ConnectorTrackerCloud?.configured;
+  app.innerHTML = `<main class="cloud-auth-page"><section class="cloud-auth-card"><div class="cloud-auth-brand"><span class="brand-mark">🏀</span><div><strong>Connector Tracker</strong><small>Utility Warehouse partner workspace</small></div></div><h1>Sign in</h1><p>Use your existing Partner ID and Companion password.</p>${!configured ? '<div class="cloud-message cloud-message-info">Cloud sign-in is not configured yet. The administrator needs to deploy the Tracker Cloud script and add its public endpoint.</div>' : ''}${cloudError ? `<div class="cloud-message cloud-message-error" role="alert">${escapeHtml(cloudError)}</div>` : ''}<form id="tracker-login-form"><label class="cloud-field">Partner ID<input name="partnerId" autocomplete="username" required maxlength="120" value="${escapeHtml(cloudPartnerIdDraft)}" ${cloudBusy || !configured ? 'disabled' : ''}></label><label class="cloud-field">Password<input name="password" type="password" autocomplete="current-password" required maxlength="512" ${cloudBusy || !configured ? 'disabled' : ''}></label><button class="btn btn-primary cloud-signin" type="submit" ${cloudBusy || !configured ? 'disabled' : ''}>${cloudBusy ? 'Signing in…' : 'Sign in securely'}</button></form><p class="cloud-auth-note">Your password is checked by the shared Partner service. Connector Tracker does not save it.</p><a class="cloud-demo-link" href="?demo=1">Open the local demo</a></section><footer>Connector CRM · v${escapeHtml(APP.version)}</footer></main>`;
+}
+function renderCloudWorkspace() {
+  const profile = cloudSession?.profile || {};
+  const connectors = cloudSession?.connectors || [];
+  if (!connectors.some(item => item.id === cloudConnectorId)) cloudConnectorId = connectors[0]?.id || '';
+  const selectedConnector = connectors.find(item => item.id === cloudConnectorId);
+  const currentRecord = cloudTestRecord?.connectorId === cloudConnectorId ? cloudTestRecord : null;
+  const busyText = cloudBusy ? '<div class="cloud-message cloud-message-info">Working with Connector Tracker Cloud…</div>' : '';
+  const errorText = cloudError ? `<div class="cloud-message cloud-message-error" role="alert">${escapeHtml(cloudError)}</div>` : '';
+  const avatar = profile.photoUrl ? `<img src="${escapeHtml(profile.photoUrl)}" alt="" referrerpolicy="no-referrer">` : escapeHtml((profile.name || '?').slice(0, 1).toUpperCase());
+  app.innerHTML = `<main class="cloud-workspace"><header class="cloud-workspace-head"><div class="cloud-auth-brand"><span class="brand-mark">🏀</span><div><strong>Connector Tracker</strong><small>Authenticated cloud workspace</small></div></div><div class="cloud-user"><span class="cloud-avatar">${avatar}</span><span><strong>${escapeHtml(profile.name || profile.partnerId)}</strong><small>${escapeHtml(profile.partnerId)}</small></span><button type="button" class="btn btn-secondary btn-sm" data-cloud-action="logout" ${cloudBusy ? 'disabled' : ''}>Sign out</button></div></header><section class="cloud-workspace-body"><div class="page-heading"><div><h1>Welcome, ${escapeHtml(profile.name || 'Partner')}</h1><p>Your shared Partner identity is verified. Connector access is checked by the server.</p></div><span class="badge green">Authenticated</span></div>${connectors.length > 1 ? `<label class="cloud-field cloud-connector-picker">Connector<select id="cloud-connector-select">${connectors.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === cloudConnectorId ? 'selected' : ''}>${escapeHtml(item.name)} · ${escapeHtml(item.role)}</option>`).join('')}</select></label>` : `<div class="cloud-connector-label">Connector · <strong>${escapeHtml(selectedConnector?.name || 'None assigned')}</strong></div>`}${busyText}${errorText}<section class="panel cloud-phase-card"><div class="panel-head"><div><h2>Phase 1 cloud check</h2><p>This private test record verifies cloud create, read and update.</p></div><span class="badge ${currentRecord ? 'green' : 'booked'}">${currentRecord ? 'Saved in cloud' : 'No test record yet'}</span></div><form id="cloud-test-form"><label class="cloud-field">Test message <small>Use test text only. Do not enter a person's or customer's details.</small><textarea name="message" maxlength="120" rows="3" placeholder="For example: Leicester device sync check" ${cloudBusy || !selectedConnector ? 'disabled' : ''}>${escapeHtml(currentRecord?.message ?? cloudMessage)}</textarea></label><button class="btn btn-primary" type="submit" ${cloudBusy || !selectedConnector ? 'disabled' : ''}>${cloudBusy ? 'Saving…' : currentRecord ? 'Update cloud test record' : 'Create cloud test record'}</button></form>${currentRecord ? `<p class="cloud-record-meta">Cloud acknowledged · version ${Number(currentRecord.version)} · ${escapeHtml(currentRecord.updatedAt ? new Date(currentRecord.updatedAt).toLocaleString('en-GB') : '')}</p>` : ''}</section><section class="panel cloud-phase-card"><h2>CRM workflow status</h2><p>The approved Event Day, Lead, 20K, appointment, follow-up and reporting screens are preserved in the local demo. Their records are not yet connected to cloud storage, so this authenticated workspace keeps them separate until Phase 2.</p><a class="btn btn-secondary" href="?demo=1">Preview the local demo</a></section><details class="panel cloud-phase-card cloud-about"><summary>About · v${escapeHtml(APP.version)}</summary><p class="muted">${escapeHtml(APP.summary[0] || '')}</p><ul class="about-list">${APP.summary.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><div class="cloud-about-history">${APP.history.slice(0, 4).map(item => `<p><strong>v${escapeHtml(item.version)}</strong> · ${escapeHtml(item.summary)}</p>`).join('')}</div></details></section></main>`;
+}
+function renderCloudGate() {
+  if (demoMode) return false;
+  if (!cloudSession) renderCloudLogin();
+  else renderCloudWorkspace();
+  return true;
+}
+async function reloadCloudTestRecord() {
+  if (!cloudSession || !cloudConnectorId) return;
+  cloudBusy = true; cloudError = ''; renderCloudWorkspace();
+  try { cloudTestRecord = await ConnectorTrackerCloud.getTestRecord(cloudConnectorId); cloudMessage = cloudTestRecord?.message || ''; }
+  catch (error) { cloudError = error.message; cloudSession = null; }
+  cloudBusy = false; renderCloudGate();
+}
 function render() {
+  if (renderCloudGate()) return;
   if (publicReportOnly) {
     if (publicReportError) { app.innerHTML = '<main class="content"><div class="panel"><h1>Report unavailable</h1><p class="muted">This report is not published on this device. The local prototype does not provide a public cloud report endpoint.</p></div></main>'; return; }
     app.innerHTML = `<main class="content"><div class="report-preview">${sharedReport()}</div></main>`;
@@ -983,6 +1020,19 @@ function inboxViewV07() {
   return heading('Action Inbox', leads.length ? leads.length + ' Leads need an update.' : 'You’re up to date.', '<span class="badge pink">' + leads.length + ' to update</span>') + (isConnectorAdmin() ? '<div class="filter-row"><button class="filter-chip ' + (leadScope === 'my' ? 'active' : '') + '" data-lead-scope="my">My Inbox</button><button class="filter-chip ' + (leadScope === 'team' ? 'active' : '') + '" data-lead-scope="team">Team Inbox</button></div>' : '') + '<div class="lead-list">' + (rows || '<div class="empty-state"><strong>Inbox zero</strong>You are up to date.</div>') + '</div>';
 }
 async function boot() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register(new URL(`sw.js?version=${encodeURIComponent(APP.version)}`, document.baseURI)).catch(error => console.warn('Offline cache could not be installed.', error));
+  if (!demoMode) {
+    try {
+      cloudSession = await ConnectorTrackerCloud.restoreSession();
+      if (cloudSession) {
+        cloudConnectorId = cloudSession.connectors[0]?.id || '';
+        if (cloudConnectorId) { await reloadCloudTestRecord(); return; }
+        cloudSession = null;
+      }
+    } catch (error) { cloudError = error.message; }
+    renderCloudLogin();
+    return;
+  }
   state = await loadState();
   if (state.route === 'lead' || state.route === 'event' || state.route === 'eventfollowups') state.route = 'eventday';
   state.activities ||= [];
@@ -1021,9 +1071,59 @@ async function boot() {
     if (item) { state.selectedConnectorId = item.id; state.period = 'This month'; state.route = 'reports'; state.reportTab = 'shared'; }
     else publicReportError = true;
   }
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register(new URL(`sw.js?version=${encodeURIComponent(APP.version)}`, document.baseURI)).catch(error => console.warn('Offline cache could not be installed.', error));
   history.replaceState({ route: state.route, leadFilter, activeLeadId, activeActivityId }, '', location.href);
   await persist();
   render();
 }
+
+app.addEventListener('submit', async event => {
+  const form = event.target;
+  if (form.id === 'tracker-login-form') {
+    event.preventDefault();
+    if (!window.ConnectorTrackerCloud?.configured || cloudBusy) return;
+    const formData = new FormData(form);
+    cloudPartnerIdDraft = String(formData.get('partnerId') || '').trim();
+    let password = String(formData.get('password') || '');
+    cloudBusy = true; cloudError = ''; renderCloudLogin();
+    try {
+      cloudSession = await ConnectorTrackerCloud.login(cloudPartnerIdDraft, password);
+      cloudConnectorId = cloudSession.connectors[0]?.id || '';
+      cloudTestRecord = null; cloudMessage = '';
+      form.reset(); password = '';
+      if (cloudConnectorId) await reloadCloudTestRecord(); else renderCloudWorkspace();
+    } catch (error) { cloudSession = null; cloudError = error.message; cloudBusy = false; password = ''; renderCloudLogin(); }
+    return;
+  }
+  if (form.id !== 'cloud-test-form' || !cloudSession || cloudBusy) return;
+  event.preventDefault();
+  cloudMessage = String(new FormData(form).get('message') || '');
+  const expectedVersion = Number(cloudTestRecord?.version || 0);
+  cloudBusy = true; cloudError = ''; renderCloudWorkspace();
+  try {
+    const saved = await ConnectorTrackerCloud.saveTestRecord(cloudConnectorId, cloudMessage, expectedVersion);
+    const reread = await ConnectorTrackerCloud.getTestRecord(cloudConnectorId);
+    if (!saved.acknowledged || !reread || reread.version !== saved.record.version) throw new Error('Cloud acknowledged the save, but the follow-up read did not match.');
+    cloudTestRecord = reread; cloudMessage = reread.message; cloudError = '';
+  } catch (error) {
+    cloudError = error.message;
+    if (/session|sign in again|revoked|inactive|not authorised/i.test(error.message)) { cloudSession = null; cloudTestRecord = null; }
+  }
+  cloudBusy = false; renderCloudGate();
+});
+
+app.addEventListener('change', event => {
+  if (event.target.id !== 'cloud-connector-select' || cloudBusy) return;
+  cloudConnectorId = event.target.value;
+  cloudTestRecord = null; cloudMessage = '';
+  reloadCloudTestRecord();
+});
+
+app.addEventListener('click', async event => {
+  if (!event.target.closest('[data-cloud-action="logout"]') || cloudBusy) return;
+  cloudBusy = true; cloudError = ''; renderCloudWorkspace();
+  try { await ConnectorTrackerCloud.logout(); } catch (_) {}
+  cloudSession = null; cloudTestRecord = null; cloudMessage = ''; cloudBusy = false; cloudPartnerIdDraft = '';
+  renderCloudLogin();
+});
+
 boot();
