@@ -16,13 +16,13 @@
         cache: 'no-store'
       });
     } catch (_) {
-      throw new Error('Could not reach Connector Tracker Cloud. Check your connection and try again.');
+      throw new Error('Could not reach CAT Cloud. Check your connection and try again.');
     }
     const text = await response.text();
     let data;
     try { data = JSON.parse(text); }
-    catch (_) { throw new Error('Connector Tracker Cloud returned an unreadable response.'); }
-    if (!data || data.ok !== true) throw new Error(data?.error || 'Connector Tracker Cloud rejected the request.');
+    catch (_) { throw new Error('CAT Cloud returned an unreadable response.'); }
+    if (!data || data.ok !== true) throw new Error(data?.error || 'CAT Cloud rejected the request.');
     return data;
   }
 
@@ -63,6 +63,24 @@
         clearSession();
         throw error;
       }
+    },
+    async getWorkspace() {
+      return authenticated('getWorkspace');
+    },
+    async saveRecord(entity, connectorId, recordId, payload, baseVersion, transactionId) {
+      return authenticated('saveCrmRecord', { entity, connector_id: connectorId, record_id: recordId, payload, base_version: baseVersion, transaction_id: transactionId });
+    },
+    async deleteRecord(entity, connectorId, recordId, baseVersion, transactionId) {
+      return authenticated('deleteCrmRecord', { entity, connector_id: connectorId, record_id: recordId, base_version: baseVersion, transaction_id: transactionId });
+    },
+    async saveConnector(connector) {
+      return authenticated('saveConnector', {
+        connector_id: connector.id, name: connector.name, code: connector.code, logo: connector.logo,
+        primary_color: connector.primaryColor, accent_color: connector.accentColor, main_contact_name: connector.mainContactName
+      });
+    },
+    async grantConnectorAccess(connectorId, partnerId, role) {
+      return authenticated('grantConnectorAccess', { connector_id: connectorId, partner_id: partnerId, role });
     },
     async getTestRecord(connectorId) {
       const data = await authenticated('getCloudTestRecord', { connector_id: connectorId });

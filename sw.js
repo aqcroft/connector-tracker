@@ -1,7 +1,7 @@
 const BASE = new URL('./', self.registration.scope);
 const SCOPE_KEY = new URL(self.registration.scope).pathname.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root';
 const VERSION = new URL(self.location.href).searchParams.get('version') || 'dev';
-const CACHE_SCHEMA = 3;
+const CACHE_SCHEMA = 6;
 const CACHE = `connector-tracker-v${VERSION}-c${CACHE_SCHEMA}-${SCOPE_KEY}`;
 const SHELL = ['index.html', 'styles.css', 'ux-v06.css', 'app-meta.js', 'cloud-config.js', 'cloud-client.js', 'app.js', 'manifest.webmanifest', 'icon.svg'].map(file => new URL(file, BASE).pathname);
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));

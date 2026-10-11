@@ -111,11 +111,11 @@ A 20K entry is top-of-funnel activity.
 
 It is simply a count of forms/entries completed by a Partner during an event.
 
-For example:
+Synthetic example data only:
 
-- Adrian: 6
-- Salima: 7
-- Destiny: 5
+- Demo Partner A: 6
+- Demo Partner B: 7
+- Demo Partner C: 5
 - Team total: 18
 
 A 20K entry is **not automatically a Lead**.
@@ -175,11 +175,11 @@ Do not force these into one exclusive status field.
 
 There are potentially several UW Partners working on the same Connector.
 
-Initially:
+Initially (using synthetic identities in examples):
 
-- Adrian
-- Salima
-- Destiny
+- Demo Admin
+- Demo Partner A
+- Demo Partner B
 
 Each Partner should easily see their own activity and Leads.
 
@@ -509,10 +509,10 @@ Within a couple of seconds I should know exactly how to:
 
 - open today's Event
 - add one to my 20K count
-- add Sarah as a Lead
-- mark that Sarah has an appointment set
-- later mark Sarah as sat
-- record that Sarah became a customer
+- add Demo Lead 01 as a Lead
+- mark that Demo Lead 01 has an appointment set
+- later mark that Demo Lead 01 sat
+- record that Demo Lead 01 became a customer
 - see whether anything else needs updating
 
 I should not need to understand the underlying database structure.

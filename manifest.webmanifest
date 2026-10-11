@@ -1,6 +1,6 @@
 {
-  "name": "Connector CRM",
-  "short_name": "Connector CRM",
+  "name": "Connector Activity Tracker",
+  "short_name": "CAT",
   "description": "Authenticated Connector activity and results CRM, with a separate local demo.",
   "start_url": "./",
   "display": "standalone",
