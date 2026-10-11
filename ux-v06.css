@@ -584,3 +584,10 @@
 .cat-qr-details>strong{font-size:15px}.cat-qr-url{margin:0;text-align:center;font-size:12px;color:var(--purple-2);font-weight:700;user-select:all;overflow-wrap:anywhere}
 .cat-qr-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:7px}.cat-qr-actions .btn{min-height:45px;min-width:0;padding:8px 4px;display:flex;align-items:center;justify-content:center;text-decoration:none;text-align:center;font-size:11px}
 @media(max-width:600px){.cat-qr-image{width:min(100%,350px,53dvh)}}
+
+/* v0.12.2 - name-first 20K capture on mobile. */
+#twenty-k-form { display:grid; gap:16px; }
+#twenty-k-form > p { font-size:13px; line-height:1.55; margin:0; }
+#twenty-k-name { min-height:50px; font-size:16px; }
+#twenty-k-form .modal-actions .btn { min-height:48px; }
+@media(max-width:600px) { #twenty-k-form .modal-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; } }
