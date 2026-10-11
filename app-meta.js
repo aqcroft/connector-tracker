@@ -1,8 +1,9 @@
 window.APP_META = {
-  version: '0.12.5',
+  version: '0.12.6',
   released: '2026-10-11',
   summary: [
-    'Add Lead now opens the correct official UW Connector form in a separate browser tab and keeps CAT on the saved 20K',
+    'Add Lead now opens the official UW form in an in-app modal when UW permits embedding, with an Open in browser fallback',
+    'Confirming the official submission explicitly is still required to count a linked CAT Lead',
     'After submitting the UW form, return to CAT and tap Connector Lead already added to track the linked Lead',
     'After recording a named 20K, choose 20K only, Add Lead now, or Connector Lead already added',
     'CAT displays a visible loading screen immediately whilst restoring existing sessions, preventing blank startups',
@@ -22,6 +23,7 @@ window.APP_META = {
     'Refreshed the UW-style CAT icon cache across the browser tab and PWA without touching Connector-specific logos or saved data'
   ],
   history: [
+    { version: '0.12.6', date: '2026-10-11', summary: 'Added optional embedded official UW form modal with external-browser fallback and manual Lead confirmation.' },
     { version: '0.12.5', date: '2026-10-11', summary: 'Open official UW Connector Lead form outside CAT without leaving the PWA; preserve 20K until separate submission is confirmed.' },
     { version: '0.12.4', date: '2026-10-11', summary: 'Added a three-option mobile 20K next step with an immediate prefilled Lead form, and kept the existing Lead-submitted shortcut.' },
     { version: '0.12.3', date: '2026-10-11', summary: 'Added resilient visible startup and bounded cloud access requests with safer retry behaviour.' },

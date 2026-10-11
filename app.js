@@ -109,9 +109,9 @@ app.addEventListener('submit', event => {
     render();
     const officialLeadUrl = qrUrl(connector(record.connectorId));
     const openOfficialLead = officialLeadUrl
-      ? `<a class="btn btn-primary" href="${escapeHtml(officialLeadUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open the official UW Connector Lead form in a separate browser tab">Add Lead now ↗</a>`
+      ? `<button type="button" class="btn btn-primary" data-open-uw-lead="${record.id}">Add Lead now</button>`
       : '<button type="button" class="btn btn-primary" disabled title="Set the Connector code in Setup / Admin">Add Lead now · link unavailable</button>';
-    openModal('20K saved', `<p class="twenty-k-saved-message"><strong>${escapeHtml(record.name)}</strong> saved as a 20K.</p><p class="twenty-k-next-question">Connector Lead?</p><div class="twenty-k-next-actions" role="group" aria-label="Next step for this 20K"><button type="button" class="btn btn-secondary" data-action="close-modal">20K only</button>${openOfficialLead}<button type="button" class="btn btn-secondary" data-create-lead-from-twenty-k="${record.id}">Connector Lead already added</button></div>${officialLeadUrl ? '<p class="twenty-k-external-hint">Opens the UW form in your browser. Afterwards, return here and tap <strong>Connector Lead already added</strong>.</p>' : '<p class="twenty-k-external-hint">No official Connector link is configured yet. Check the Connector code in Setup / Admin.</p>'}`);
+    openModal('20K saved', `<p class="twenty-k-saved-message"><strong>${escapeHtml(record.name)}</strong> saved as a 20K.</p><p class="twenty-k-next-question">Connector Lead?</p><div class="twenty-k-next-actions" role="group" aria-label="Next step for this 20K"><button type="button" class="btn btn-secondary" data-action="close-modal">20K only</button>${openOfficialLead}<button type="button" class="btn btn-secondary" data-create-lead-from-twenty-k="${record.id}">Connector Lead already added</button></div>${officialLeadUrl ? '<p class="twenty-k-external-hint">Opens the UW form here when supported. You can also open it separately in your browser.</p>' : '<p class="twenty-k-external-hint">No official Connector link is configured yet. Check the Connector code in Setup / Admin.</p>'}`);
     return;
   }
   const originId = String(data.get('origin20KId') || origin20KId || '');
@@ -707,6 +707,7 @@ document.addEventListener('click', async event => {
   if (target.dataset.action === 'new-todays-event') { activeActivityId = ''; createTodayEvent = true; navigate('newactivity'); return; }
   if (target.dataset.action === 'add-20k') { addQuickTwentyK(activeActivityId); return; }
   if (target.dataset.choose20k) { const record = state.twentyKRecords.find(item => item.id === target.dataset.choose20k); if (record && !record.leadId) { origin20KId = record.id; activeActivityId = record.activityId; forceUnlinkedLead = false; render(); } return; }
+  if (target.dataset.openUwLead) { showOfficialUwLead(target.dataset.openUwLead); return; }
   if (target.dataset.createLeadFromTwentyK || target.dataset.convert20k) {
     closeModal();
     convertTwentyKToLead(target.dataset.createLeadFromTwentyK || target.dataset.convert20k);
@@ -949,6 +950,32 @@ function eventDayV07() {
   const leadSection = '<section class="panel event-day-leads"><div class="panel-head"><div><h2>Leads from this Event</h2></div><button class="text-link" data-route="leads">All Leads →</button></div>' + (leadRows ? '<div class="event-lead-list">' + leadRows + '</div>' : '<div class="event-lead-empty">No Leads originated from this Event yet.</div>') + '</section>';
   return hero + progress + actions + namedRecords + leadSection;
 }
+
+function showOfficialUwLead(recordId) {
+  const record = (state.twentyKRecords || []).find(item => item.id === recordId);
+  if (!record || !hasAccess(record.connectorId)) { showToast('This 20K is not available'); return; }
+  if (record.leadId) { showToast('This 20K already has a linked Lead'); return; }
+  const url = qrUrl(connector(record.connectorId));
+  if (!url) { showToast('Official UW Connector link is not configured'); return; }
+  const html = '<div class="uw-form-embed">' +
+    '<div class="uw-form-embed-context"><strong>' + escapeHtml(record.name) +
+      '</strong><span>20K already saved · ' + escapeHtml(activityById(record.activityId)?.name || 'Event') + '</span></div>' +
+    '<p class="uw-form-embed-help">Complete the official UW form below. If UW prevents it displaying in CAT, use <strong>Open in browser</strong>.</p>' +
+    '<iframe class="uw-form-embed-frame" title="Official UW Connector Lead form" src="' + escapeHtml(url) +
+      '" loading="eager" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>' +
+    '<div class="uw-form-embed-actions">' +
+      '<a class="btn btn-secondary" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">Open in browser ↗</a>' +
+      '<button type="button" class="btn btn-primary" data-create-lead-from-twenty-k="' + escapeHtml(record.id) +
+        '">UW form submitted · Record Lead</button>' +
+    '</div>' +
+    '<p class="uw-form-embed-help uw-form-embed-footnote">Only confirm after submitting the official UW form. Closing this window keeps your 20K without adding a Lead.</p></div>';
+  closeModal();
+  openModal('UW Connector Lead', html);
+  const backdrop = document.getElementById('modal-wrap');
+  backdrop?.classList.add('uw-official-lead-backdrop');
+  backdrop?.querySelector('.modal')?.classList.add('uw-official-lead-modal');
+}
+
 function convertTwentyKToLead(recordId) {
   const record = (state.twentyKRecords || []).find(item => item.id === recordId);
   if (!record || !hasAccess(record.connectorId)) return;
