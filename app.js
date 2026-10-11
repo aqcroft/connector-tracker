@@ -1,7 +1,7 @@
 const CHANNELS = ['20K Event', 'WhatsApp', 'Facebook', 'Instagram', 'Social media', 'Website', 'Email', 'Physical signage', 'QR', 'Other', 'Unknown'];
 const COMMISSION_BANDS = [0, 50, 100, 250, 300];
 const APP = window.APP_META || { version: '0.4.0', released: new Date().toISOString().slice(0, 10), summary: [], history: [] };
-const PARTNERS = [{ id: 'adrian', name: 'Adrian', role: 'Admin', active: true }, { id: 'salima', name: 'Salima', role: 'Partner', active: true }, { id: 'destiny', name: 'Destiny', role: 'Partner', active: true }];
+const PARTNERS = [{ id: 'demo-admin', name: 'Demo Admin', role: 'Admin', active: true }, { id: 'demo-partner-a', name: 'Demo Partner A', role: 'Partner', active: true }, { id: 'demo-partner-b', name: 'Demo Partner B', role: 'Partner', active: true }];
 const STATUSES = ['Booked', 'Sat', 'Cancelled', 'Ghosted / No-show'];
 const CUSTOMER_OUTCOMES = ['Customer signed up', 'No for now', 'Not discussed / N/A'];
 const PARTNER_OUTCOMES = ['Partner signed up', 'No for now', 'Not discussed / N/A'];
@@ -14,25 +14,25 @@ const prettyDate = value => { if (!value) return 'No date'; const date = new Dat
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const today = dateISO(new Date());
 const initialState = () => ({
-  currentUserId: 'adrian', selectedConnectorId: 'dynamite', route: 'home', reportTab: 'team', period: 'This month', followFilter: 'All', search: '', actionPromptDismissed: false,
-  connectors: [{ id: 'dynamite', code: 'CN-A7F3', name: 'Leicester Dynamite', active: true, logo: '🏀', primaryColor: '#c8102e', accentColor: '#201b2c', reportToken: uid() }],
+  currentUserId: 'demo-admin', selectedConnectorId: 'demo-connector', route: 'home', reportTab: 'team', period: 'This month', followFilter: 'All', search: '', actionPromptDismissed: false,
+  connectors: [{ id: 'demo-connector', code: 'DEMO', name: 'Demo Connector', active: true, logo: '🏀', primaryColor: '#c8102e', accentColor: '#201b2c', reportToken: uid() }],
   users: PARTNERS,
-  access: [{ connectorId: 'dynamite', userId: 'adrian', role: 'Admin' }, { connectorId: 'dynamite', userId: 'salima', role: 'Editor' }, { connectorId: 'dynamite', userId: 'destiny', role: 'Editor' }],
-  activities: [{ id: 'sat-activation', connectorId: 'dynamite', name: 'Saturday Training Activation', date: today, type: 'Event', channel: 'In-person / 20K', notes: '', active: true, createdAt: '2026-09-28T10:00:00.000Z' }, { id: 'parent-whatsapp', connectorId: 'dynamite', name: 'Parent WhatsApp Launch', date: '2026-10-01', type: 'Campaign', channel: 'WhatsApp', notes: '', active: true, createdAt: '2026-09-30T12:00:00.000Z' }],
-  stats: [{ activityId: 'sat-activation', partnerId: 'adrian', forms20K: 6, version: 1 }, { activityId: 'sat-activation', partnerId: 'salima', forms20K: 7, version: 1 }, { activityId: 'sat-activation', partnerId: 'destiny', forms20K: 5, version: 1 }],
+  access: [{ connectorId: 'demo-connector', userId: 'demo-admin', role: 'Admin' }, { connectorId: 'demo-connector', userId: 'demo-partner-a', role: 'Editor' }, { connectorId: 'demo-connector', userId: 'demo-partner-b', role: 'Editor' }],
+  activities: [{ id: 'sat-activation', connectorId: 'demo-connector', name: 'Demo Event: Training Activation', date: today, type: 'Event', channel: 'In-person / 20K', notes: '', active: true, createdAt: '2026-09-28T10:00:00.000Z' }, { id: 'parent-whatsapp', connectorId: 'demo-connector', name: 'Demo Campaign: Messaging Launch', date: '2026-10-01', type: 'Campaign', channel: 'WhatsApp', notes: '', active: true, createdAt: '2026-09-30T12:00:00.000Z' }],
+  stats: [{ activityId: 'sat-activation', partnerId: 'demo-admin', forms20K: 6, version: 1 }, { activityId: 'sat-activation', partnerId: 'demo-partner-a', forms20K: 7, version: 1 }, { activityId: 'sat-activation', partnerId: 'demo-partner-b', forms20K: 5, version: 1 }],
   twentyKRecords: [],
   leads: [
-    { id: 'lead-sarah', connectorId: 'dynamite', partnerId: 'adrian', name: 'Sarah', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'New customer', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: { energy: true, broadband: true, insurance: false, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment sat' }, { date: '2026-10-01', action: 'New customer' }] },
-    { id: 'lead-mike', connectorId: 'dynamite', partnerId: 'adrian', name: 'Mike', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Tenant', appointment: 'Booked', outcome: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment booked' }] },
-    { id: 'lead-lisa', connectorId: 'dynamite', partnerId: 'adrian', name: 'Lisa', received: '2026-10-02', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: 'Ghosted / No-show', outcome: 'No for now', followUp: true, reviewDate: '2027-01-02', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'Ghosted / No-show' }, { date: '2026-10-02', action: 'Follow-up required' }] },
-  { id: 'lead-salima-1', connectorId: 'dynamite', partnerId: 'salima', name: 'Jo', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }] },
-  { id: 'lead-salima-2', connectorId: 'dynamite', partnerId: 'salima', name: 'Tom', received: '2026-10-01', channel: 'WhatsApp', activityId: 'sat-activation', homeStatus: 'Tenant', appointment: 'Sat', outcome: 'No for now', followUp: true, reviewDate: '2027-01-01', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment sat' }, { date: '2026-10-01', action: 'No for now' }, { date: '2026-10-01', action: 'Follow-up required' }] },
-  { id: 'lead-salima-3', connectorId: 'dynamite', partnerId: 'salima', name: 'Jemma', received: '2026-10-01', channel: 'Website', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: 'Cancelled', outcome: 'No for now', followUp: true, reviewDate: '2026-10-21', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Cancelled' }, { date: '2026-10-02', action: 'No for now' }] },
-  { id: 'lead-salima-4', connectorId: 'dynamite', partnerId: 'salima', name: 'Ravi', received: '2026-10-01', channel: 'Social media', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'Existing UW customer helped', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: { energy: false, broadband: true, insurance: true, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }, { date: '2026-10-02', action: 'Existing UW customer helped' }] },
-    { id: 'lead-destiny-1', connectorId: 'dynamite', partnerId: 'destiny', name: 'Asha', received: '2026-10-02', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'New customer', followUp: false, reviewDate: '', becamePartner: true, archived: false, services: { energy: true, broadband: true, insurance: false, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }, { date: '2026-10-02', action: 'New customer' }, { date: '2026-10-02', action: 'Became a UW Partner' }] },
-  { id: 'lead-destiny-2', connectorId: 'dynamite', partnerId: 'destiny', name: 'Omar', received: '2026-10-02', channel: 'Unknown', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: '', outcome: 'No for now', followUp: true, reviewDate: '2026-11-02', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'No for now' }] }
+    { id: 'demo-lead-01', connectorId: 'demo-connector', partnerId: 'demo-admin', name: 'Demo Lead 01', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'New customer', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: { energy: true, broadband: true, insurance: false, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment sat' }, { date: '2026-10-01', action: 'New customer' }] },
+    { id: 'demo-lead-02', connectorId: 'demo-connector', partnerId: 'demo-admin', name: 'Demo Lead 02', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Tenant', appointment: 'Booked', outcome: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment booked' }] },
+    { id: 'demo-lead-03', connectorId: 'demo-connector', partnerId: 'demo-admin', name: 'Demo Lead 03', received: '2026-10-02', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: 'Ghosted / No-show', outcome: 'No for now', followUp: true, reviewDate: '2027-01-02', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'Ghosted / No-show' }, { date: '2026-10-02', action: 'Follow-up required' }] },
+  { id: 'demo-lead-04', connectorId: 'demo-connector', partnerId: 'demo-partner-a', name: 'Demo Lead 04', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }] },
+  { id: 'demo-lead-05', connectorId: 'demo-connector', partnerId: 'demo-partner-a', name: 'Demo Lead 05', received: '2026-10-01', channel: 'WhatsApp', activityId: 'sat-activation', homeStatus: 'Tenant', appointment: 'Sat', outcome: 'No for now', followUp: true, reviewDate: '2027-01-01', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment sat' }, { date: '2026-10-01', action: 'No for now' }, { date: '2026-10-01', action: 'Follow-up required' }] },
+  { id: 'demo-lead-06', connectorId: 'demo-connector', partnerId: 'demo-partner-a', name: 'Demo Lead 06', received: '2026-10-01', channel: 'Website', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: 'Cancelled', outcome: 'No for now', followUp: true, reviewDate: '2026-10-21', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Cancelled' }, { date: '2026-10-02', action: 'No for now' }] },
+  { id: 'demo-lead-07', connectorId: 'demo-connector', partnerId: 'demo-partner-a', name: 'Demo Lead 07', received: '2026-10-01', channel: 'Social media', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'Existing UW customer helped', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: { energy: false, broadband: true, insurance: true, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }, { date: '2026-10-02', action: 'Existing UW customer helped' }] },
+    { id: 'demo-lead-08', connectorId: 'demo-connector', partnerId: 'demo-partner-b', name: 'Demo Lead 08', received: '2026-10-02', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'New customer', followUp: false, reviewDate: '', becamePartner: true, archived: false, services: { energy: true, broadband: true, insurance: false, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }, { date: '2026-10-02', action: 'New customer' }, { date: '2026-10-02', action: 'Became a UW Partner' }] },
+  { id: 'demo-lead-09', connectorId: 'demo-connector', partnerId: 'demo-partner-b', name: 'Demo Lead 09', received: '2026-10-02', channel: 'Unknown', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: '', outcome: 'No for now', followUp: true, reviewDate: '2026-11-02', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'No for now' }] }
   ],
-  generatedPartners: [{ id: 'gp-asha', connectorId: 'dynamite', originLeadId: 'lead-destiny-1', name: 'Asha', joined: '2026-10-02', introducedBy: 'destiny', status: 'Active' }],
+  generatedPartners: [{ id: 'demo-generated-partner-01', connectorId: 'demo-connector', originLeadId: 'demo-lead-08', name: 'Demo Partner Generated 01', joined: '2026-10-02', introducedBy: 'demo-partner-b', status: 'Active' }],
   commissionRules: [
     { id: 'rule-test-basket', version: 'TEST-2026-01', effectiveFrom: '2026-01-01', effectiveTo: '', products: { energy: true, broadband: true, insurance: false, essentials: 0, unlimited: 1 }, partner: 250, connector: 125, label: 'TEST ONLY: Energy + Broadband + 1 Unlimited SIM' },
     { id: 'rule-test-energy', version: 'TEST-2026-01', effectiveFrom: '2026-01-01', effectiveTo: '', products: { energy: true, broadband: false, insurance: false, essentials: 1, unlimited: 0 }, partner: 100, connector: 50, label: 'TEST ONLY: Energy + 1 Essentials SIM' },
@@ -56,6 +56,18 @@ let publicReportError = false;
 let toastTimer;
 let undoAction = null;
 let followupDraft = null;
+let demoMode = new URLSearchParams(location.search).get('demo') === '1';
+let cloudSession = null;
+let cloudConnectorId = '';
+let cloudBusy = false;
+let cloudError = '';
+let cloudCrmReady = false;
+let cloudSyncState = 'idle';
+let cloudSyncError = '';
+let cloudSyncPromise = null;
+let cloudRefreshPromise = null;
+const cloudVersions = new Map();
+let cloudPartnerIdDraft = '';
 const app = document.getElementById('app');
 const toastNode = document.getElementById('toast');
 app.addEventListener('submit', event => {
@@ -97,7 +109,7 @@ app.addEventListener('submit', event => {
 document.addEventListener('click', event => {
   if (event.target.closest('#modal-wrap [data-action="close-modal"]') || event.target.id === 'modal-wrap') closeModal();
   const switchButton = event.target.closest('[data-switch-user]');
-  if (switchButton) { state.currentUserId = switchButton.dataset.switchUser; draftServices = null; if (!hasAccess()) state.selectedConnectorId = state.connectors.find(item => hasAccess(item.id))?.id || ''; state.route = 'home'; closeModal(); render(); persist(); }
+  if (switchButton) { if (cloudCrmReady) { showToast('Partner identities are managed by Companion. Sign out to change account.'); return; } state.currentUserId = switchButton.dataset.switchUser; draftServices = null; if (!hasAccess()) state.selectedConnectorId = state.connectors.find(item => hasAccess(item.id))?.id || ''; state.route = 'home'; closeModal(); render(); persist(); }
   if (event.target.closest('[data-action="undo-last"]') && undoAction) { const action = undoAction; const index = state.leads.findIndex(item => item.id === action.leadId); if (index >= 0) state.leads[index] = structuredClone(action.previous); if (action.history) state.history = structuredClone(action.history); if (action.outbox) state.outbox = structuredClone(action.outbox); undoAction = null; followupDraft = null; closeModal(); commit(`Undid appointment update for ${state.leads[index]?.name || 'Lead'}`, state.leads[index]?.connectorId, 'lead', action.leadId, 'update', state.leads[index] ? { ...state.leads[index] } : null); state.route = action.route || state.route; render(); showToast('Appointment update undone'); }
   const convert20k = event.target.closest('[data-convert-20k]');
   if (convert20k) { closeModal(); convertTwentyKToLead(convert20k.dataset.convert20k); return; }
@@ -249,18 +261,20 @@ function database() {
     request.onerror = () => reject(request.error);
   });
 }
-async function loadState() {
+function stateStorageKey() { return cloudSession && !demoMode ? `app-state-cloud-${encodeURIComponent(cloudSession.profile.partnerId)}` : 'app-state'; }
+function localStorageStateKey() { return cloudSession && !demoMode ? `connector-tracker-state-${encodeURIComponent(cloudSession.profile.partnerId)}` : 'connector-tracker-state'; }
+async function loadState(key = stateStorageKey()) {
   try {
     const db = await database();
     const stored = await new Promise((resolve, reject) => {
-      const request = db.transaction('local', 'readonly').objectStore('local').get('app-state');
+      const request = db.transaction('local', 'readonly').objectStore('local').get(key);
       request.onsuccess = () => resolve(request.result?.value);
       request.onerror = () => reject(request.error);
     });
     db.close();
     if (stored) return { ...initialState(), ...stored };
   } catch (error) { console.warn('Using browser storage fallback.', error); }
-  try { const stored = JSON.parse(localStorage.getItem('connector-tracker-state') || 'null'); if (stored) return { ...initialState(), ...stored }; } catch {}
+  try { const stored = JSON.parse(localStorage.getItem(localStorageStateKey()) || 'null'); if (stored) return { ...initialState(), ...stored }; } catch {}
   return initialState();
 }
 async function persist() {
@@ -268,17 +282,24 @@ async function persist() {
   try {
     const db = await database();
     await new Promise((resolve, reject) => {
-      const request = db.transaction('local', 'readwrite').objectStore('local').put({ key: 'app-state', value: state });
+      const request = db.transaction('local', 'readwrite').objectStore('local').put({ key: stateStorageKey(), value: state });
       request.onsuccess = resolve; request.onerror = () => reject(request.error);
     });
     db.close();
-  } catch { localStorage.setItem('connector-tracker-state', JSON.stringify(state)); }
+  } catch { localStorage.setItem(localStorageStateKey(), JSON.stringify(state)); }
 }
 function commit(summary, connectorId = state.selectedConnectorId, entity = 'record', recordId = '', action = 'upsert', payload = null) {
   const now = new Date().toISOString();
   state.history.unshift({ id: uid(), connectorId, partnerId: state.currentUserId, timestamp: now, summary });
-  state.outbox.unshift({ transactionId: uid(), entity, entityId: recordId || uid(), action, version: payload?.version || 1, payload, connectorId, createdAt: now, status: 'pending', retryCount: 0 });
+  const cloudEntity = ['activity', 'twenty-k', 'lead', 'activity-partner-stat', 'customer-result', 'generated-partner', 'commission-rule', 'connector'].includes(entity);
+  if (cloudEntity) {
+    const entityId = payload?.id || recordId || uid();
+    const queuedAhead = entity === 'connector' ? 0 : state.outbox.filter(change => change.entity === entity && change.connectorId === connectorId && (change.payload?.id || change.entityId) === entityId).length;
+    const baseCloudVersion = entity === 'connector' ? 0 : (cloudVersions.get(cloudRecordKey(connectorId, entity, entityId)) || 0) + queuedAhead;
+    state.outbox.push({ transactionId: uid(), entity, entityId, action, version: payload?.version || 1, baseCloudVersion, payload, connectorId, createdAt: now, status: 'pending', retryCount: 0 });
+  }
   persist();
+  if (cloudCrmReady && !demoMode) persist().then(syncCloudOutbox);
 }
 function navigate(route, options = {}) { state.route = route; state.search = ''; if (!options.replace) history.pushState({ route, leadFilter, activeLeadId, activeActivityId }, '', location.href); render(); }
 window.addEventListener('popstate', event => { const next = event.state || {}; state.route = next.route || 'home'; leadFilter = next.leadFilter || 'all'; activeLeadId = next.activeLeadId || ''; activeActivityId = next.activeActivityId || ''; render(); });
@@ -324,7 +345,7 @@ const navItems = [{ id: 'home', label: 'Home' }, { id: 'eventday', label: 'Event
 function shell(content, title) {
   const user = currentUser();
   const bottom = state.route === 'home' ? navItems.filter(item => item.id === 'home') : navItems.filter(item => item.id === 'home' || item.id === state.route);
-  return `<div class="app-shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">🏀</div><div><div class="brand-name">Connector<br>Tracker</div><div class="brand-kicker">Performance, made simple</div></div></div><div class="side-label">Workspace</div><nav class="nav-list">${navItems.map(item => `<button class="nav-btn ${state.route === item.id ? 'active' : ''}" data-route="${item.id}"><span class="nav-icon">${iconForRoute(item.id)}</span>${item.label}</button>`).join('')}</nav><div class="sidebar-bottom"><div class="local-state"><strong>✓ Saved on this device</strong>${state.outbox.length ? `${state.outbox.length} change${state.outbox.length === 1 ? '' : 's'} waiting for cloud sync` : 'Cloud sync is not connected'}</div><button class="profile-switch" data-action="profile"><span class="avatar">${user.name.slice(0, 1)}</span><span class="profile-copy"><span class="profile-name">${user.name}</span><span class="profile-role">${user.role === 'Admin' ? 'Team Admin' : 'Partner'}</span></span><span>⌄</span></button></div></aside><main class="main-area"><header class="topbar"><div class="crumbs"><span>Leicester Dynamite</span><span>›</span><strong>${title}</strong></div><div class="top-actions"><span class="sync-pill" title="Stored locally. Cloud sync is not connected.">● Local</span>${!['lead','newlead','newactivity','connectors'].includes(state.route) ? `<select class="period-select" data-period>${periods.map(period => `<option ${period === state.period ? 'selected' : ''}>${period}</option>`).join('')}</select>` : ''}<button class="icon-btn" data-action="connectors" title="Switch Connector" aria-label="Switch Connector">◈</button></div></header><section class="content">${content}</section></main><nav class="mobile-nav">${bottom.map(item => `<button class="${state.route === item.id ? 'active' : ''}" data-route="${item.id}"><span>${iconForRoute(item.id)}</span><span>${item.label}</span></button>`).join('')}<button data-action="profile"><span>●</span><span>${user.name}</span></button></nav></div>`;
+  return `<div class="app-shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">🏀</div><div><div class="brand-name">Connector<br>Tracker</div><div class="brand-kicker">Performance, made simple</div></div></div><div class="side-label">Workspace</div><nav class="nav-list">${navItems.map(item => `<button class="nav-btn ${state.route === item.id ? 'active' : ''}" data-route="${item.id}"><span class="nav-icon">${iconForRoute(item.id)}</span>${item.label}</button>`).join('')}</nav><div class="sidebar-bottom"><div class="local-state"><strong>✓ Saved on this device</strong>${state.outbox.length ? `${state.outbox.length} change${state.outbox.length === 1 ? '' : 's'} waiting for cloud sync` : 'Cloud sync is not connected'}</div><button class="profile-switch" data-action="profile"><span class="avatar">${user.name.slice(0, 1)}</span><span class="profile-copy"><span class="profile-name">${user.name}</span><span class="profile-role">${user.role === 'Admin' ? 'Team Admin' : 'Partner'}</span></span><span>⌄</span></button></div></aside><main class="main-area"><header class="topbar"><div class="crumbs"><span>Demo Connector</span><span>›</span><strong>${title}</strong></div><div class="top-actions"><span class="sync-pill" title="Stored locally. Cloud sync is not connected.">● Local</span>${!['lead','newlead','newactivity','connectors'].includes(state.route) ? `<select class="period-select" data-period>${periods.map(period => `<option ${period === state.period ? 'selected' : ''}>${period}</option>`).join('')}</select>` : ''}<button class="icon-btn" data-action="connectors" title="Switch Connector" aria-label="Switch Connector">◈</button></div></header><section class="content">${content}</section></main><nav class="mobile-nav">${bottom.map(item => `<button class="${state.route === item.id ? 'active' : ''}" data-route="${item.id}"><span>${iconForRoute(item.id)}</span><span>${item.label}</span></button>`).join('')}<button data-action="profile"><span>●</span><span>${user.name}</span></button></nav></div>`;
 }
 function heading(title, subtitle = '', actions = '') { return `<div class="page-heading"><div><div class="eyebrow">${escapeHtml(connector()?.name || 'Portfolio')}</div><h1>${title}</h1>${subtitle ? `<p>${subtitle}</p>` : ''}</div><div class="heading-actions">${actions}</div></div>`; }
 function connectorStrip() { const item = connector(); return `<div class="connector-strip"><div class="connector-logo">${logoMarkup(item)}</div><div class="connector-meta"><strong>${item?.name || 'Connector'}</strong><span>${item?.code || ''} · ${currentConnectorRole() === 'Admin' ? 'Connector Admin' : 'Partner'}</span></div><span class="badge green">Active</span><button class="icon-btn" data-action="connectors" title="Switch Connector">⌄</button></div>`; }
@@ -357,11 +378,11 @@ function activityFormView() {
   const count = statFor(item?.id, state.currentUserId);
   const stats = item ? state.stats.filter(stat => stat.activityId === item.id) : [];
   const total = stats.reduce((sum, stat) => sum + stat.forms20K, 0);
-  return `${heading(item ? 'Log your 20K count' : 'Create an activity', item ? 'Each Partner records their own count. The team total updates automatically.' : 'Create an event in advance, then add 20K counts on the day.')}${connectorStrip()}<div class="form-shell"><form class="panel" id="activity-form"><div class="form-grid"><div class="field full"><label for="activity-name">Activity / event name</label><input id="activity-name" name="name" required maxlength="80" placeholder="e.g. Saturday Training Activation" value="${escapeHtml(item?.name || '')}"></div><div class="field"><label for="activity-date">Date</label><input id="activity-date" name="date" type="date" value="${item?.date || today}" required></div><div class="field"><label for="activity-type">Activity type</label><select id="activity-type" name="type">${['Event','Campaign','Ongoing asset'].map(type => `<option ${type === (item?.type || 'Event') ? 'selected' : ''}>${type}</option>`).join('')}</select></div><div class="field"><label for="activity-channel">Channel</label><select id="activity-channel" name="channel">${CHANNELS.map(channel => `<option ${channel === (item?.channel || CHANNELS[0]) ? 'selected' : ''}>${channel}</option>`).join('')}</select></div><div class="field full"><label for="activity-notes">Notes <span class="muted">· optional</span></label><textarea id="activity-notes" name="notes" maxlength="240" placeholder="A short note to help you recognise this activity later">${escapeHtml(item?.notes || '')}</textarea></div></div>${item ? `<div class="section-title">My 20K forms <span class="badge">${currentUser().name}</span></div><div class="stepper"><button type="button" data-count="-1" aria-label="Decrease my count">−</button><output id="count-value">${count}</output><button type="button" data-count="1" aria-label="Increase my count">＋</button></div><div class="helper" style="text-align:center;margin:8px 0 15px">Only your own count is changed here.</div><div class="section-title">Event team so far</div><div class="team-counts">${state.users.filter(user => user.active).map(user => `<div class="team-count"><span>${user.name}</span><strong>${statFor(item.id, user.id)}</strong></div>`).join('')}</div><div class="total-count"><span>Team total</span><strong id="team-total">${total}</strong></div>` : '<div class="callout" style="margin-top:16px">This creates the event shell without a count. Add Leads now, then update 20K forms from the event page when activity happens.</div>'}<div style="display:flex;gap:8px;margin-top:16px"><button type="button" class="btn btn-secondary" data-route="activities">Cancel</button><button class="btn btn-pink" type="submit" style="flex:1">${item ? 'Save my count' : 'Create activity'}</button></div></form></div>`;
+  return `${heading(item ? 'Log your 20K count' : 'Create an activity', item ? 'Each Partner records their own count. The team total updates automatically.' : 'Create an event in advance, then add 20K counts on the day.')}${connectorStrip()}<div class="form-shell"><form class="panel" id="activity-form"><div class="form-grid"><div class="field full"><label for="activity-name">Activity / event name</label><input id="activity-name" name="name" required maxlength="80" placeholder="e.g. Demo Event: Training Activation" value="${escapeHtml(item?.name || '')}"></div><div class="field"><label for="activity-date">Date</label><input id="activity-date" name="date" type="date" value="${item?.date || today}" required></div><div class="field"><label for="activity-type">Activity type</label><select id="activity-type" name="type">${['Event','Campaign','Ongoing asset'].map(type => `<option ${type === (item?.type || 'Event') ? 'selected' : ''}>${type}</option>`).join('')}</select></div><div class="field"><label for="activity-channel">Channel</label><select id="activity-channel" name="channel">${CHANNELS.map(channel => `<option ${channel === (item?.channel || CHANNELS[0]) ? 'selected' : ''}>${channel}</option>`).join('')}</select></div><div class="field full"><label for="activity-notes">Notes <span class="muted">· optional</span></label><textarea id="activity-notes" name="notes" maxlength="240" placeholder="A short note to help you recognise this activity later">${escapeHtml(item?.notes || '')}</textarea></div></div>${item ? `<div class="section-title">My 20K forms <span class="badge">${currentUser().name}</span></div><div class="stepper"><button type="button" data-count="-1" aria-label="Decrease my count">−</button><output id="count-value">${count}</output><button type="button" data-count="1" aria-label="Increase my count">＋</button></div><div class="helper" style="text-align:center;margin:8px 0 15px">Only your own count is changed here.</div><div class="section-title">Event team so far</div><div class="team-counts">${state.users.filter(user => user.active).map(user => `<div class="team-count"><span>${user.name}</span><strong>${statFor(item.id, user.id)}</strong></div>`).join('')}</div><div class="total-count"><span>Team total</span><strong id="team-total">${total}</strong></div>` : '<div class="callout" style="margin-top:16px">This creates the event shell without a count. Add Leads now, then update 20K forms from the event page when activity happens.</div>'}<div style="display:flex;gap:8px;margin-top:16px"><button type="button" class="btn btn-secondary" data-route="activities">Cancel</button><button class="btn btn-pink" type="submit" style="flex:1">${item ? 'Save my count' : 'Create activity'}</button></div></form></div>`;
 }
 function newLeadView() {
   const defaultActivity = forceUnlinkedLead ? '' : activeActivityId || (todayEvents().length === 1 ? todayEvents()[0].id : '');
-  return `${heading('Add a Lead', 'A first name is enough. Unknown is a valid channel.', `<button class="btn btn-secondary" data-route="leads">Cancel</button>`)}<div class="form-shell"><form class="panel" id="lead-form"><div class="form-grid"><div class="field"><label for="lead-name">First name / short name</label><input id="lead-name" name="name" required maxlength="40" placeholder="e.g. Sarah" autocomplete="off"></div><div class="field"><label for="lead-date">Date received</label><input id="lead-date" name="received" type="date" value="${today}" required></div><div class="field"><label for="lead-channel">Channel</label><select id="lead-channel" name="channel">${CHANNELS.map(channel => `<option ${channel === 'Unknown' ? 'selected' : ''}>${channel}</option>`).join('')}</select></div><div class="field"><label for="lead-activity">Activity <span class="muted">· optional</span></label><select id="lead-activity" name="activityId"><option value="">No specific activity</option>${activeConnectorActivities().map(activity => `<option value="${activity.id}" ${activity.id === defaultActivity ? 'selected' : ''}>${escapeHtml(activity.name)} · ${prettyDate(activity.date)}</option>`).join('')}</select></div><div class="field"><label for="lead-home">Home status</label><select id="lead-home" name="homeStatus"><option>Unknown</option><option>Homeowner</option><option>Tenant</option></select></div><div class="field"><label for="appointment-date">Appointment date <span class="muted">· optional</span></label><input id="appointment-date" name="appointmentDate" type="date"><span class="helper">Used when you choose “Save + Appointment set”. Date only.</span></div><div class="field"><label>Generated by</label><input value="${currentUser().name}" disabled></div></div><div class="callout" style="margin-top:16px">The Lead belongs to ${currentUser().name}. Generated By is permanent; Current Owner can be reassigned by an Admin.</div><div class="modal-actions"><button class="btn btn-secondary" type="submit" name="submitMode" value="save">Save Lead</button><button class="btn btn-primary" type="submit" name="submitMode" value="booked">Save + Appointment set</button></div></form></div>`;
+  return `${heading('Add a Lead', 'A first name is enough. Unknown is a valid channel.', `<button class="btn btn-secondary" data-route="leads">Cancel</button>`)}<div class="form-shell"><form class="panel" id="lead-form"><div class="form-grid"><div class="field"><label for="lead-name">First name / short name</label><input id="lead-name" name="name" required maxlength="40" placeholder="e.g. Demo Lead 01" autocomplete="off"></div><div class="field"><label for="lead-date">Date received</label><input id="lead-date" name="received" type="date" value="${today}" required></div><div class="field"><label for="lead-channel">Channel</label><select id="lead-channel" name="channel">${CHANNELS.map(channel => `<option ${channel === 'Unknown' ? 'selected' : ''}>${channel}</option>`).join('')}</select></div><div class="field"><label for="lead-activity">Activity <span class="muted">· optional</span></label><select id="lead-activity" name="activityId"><option value="">No specific activity</option>${activeConnectorActivities().map(activity => `<option value="${activity.id}" ${activity.id === defaultActivity ? 'selected' : ''}>${escapeHtml(activity.name)} · ${prettyDate(activity.date)}</option>`).join('')}</select></div><div class="field"><label for="lead-home">Home status</label><select id="lead-home" name="homeStatus"><option>Unknown</option><option>Homeowner</option><option>Tenant</option></select></div><div class="field"><label for="appointment-date">Appointment date <span class="muted">· optional</span></label><input id="appointment-date" name="appointmentDate" type="date"><span class="helper">Used when you choose “Save + Appointment set”. Date only.</span></div><div class="field"><label>Generated by</label><input value="${currentUser().name}" disabled></div></div><div class="callout" style="margin-top:16px">The Lead belongs to ${currentUser().name}. Generated By is permanent; Current Owner can be reassigned by an Admin.</div><div class="modal-actions"><button class="btn btn-secondary" type="submit" name="submitMode" value="save">Save Lead</button><button class="btn btn-primary" type="submit" name="submitMode" value="booked">Save + Appointment set</button></div></form></div>`;
 }
 function leadStatus(lead) { const status = appointmentOutcome(lead); return status ? `<span class="status ${statusClass(status)}">${status}</span>` : '<span class="status">No appointment</span>'; }
 function statusClass(value) { return value === 'Sat' ? 'sat' : value === 'Booked' ? 'booked' : value === 'Cancelled' ? 'cancelled' : value.includes('Ghosted') ? 'ghosted' : ''; }
@@ -439,7 +460,12 @@ function connectorView() {
     return { item, leads, leadsCount: leads.length, booked: leads.filter(lead => ['Booked','Sat'].includes(lead.appointment)).length, sat: leads.filter(lead => lead.appointment === 'Sat').length, customers: leads.filter(outcomeIsCustomer).length, partners: leads.filter(lead => lead.becamePartner).length, income: leads.reduce((sum, lead) => sum + (resultFor(lead).connectorCommission || 0), 0) };
   });
   const total = portfolio.reduce((sum, row) => ({ leads: sum.leads + row.leadsCount, booked: sum.booked + row.booked, sat: sum.sat + row.sat, customers: sum.customers + row.customers, partners: sum.partners + row.partners, income: sum.income + row.income }), { leads: 0, booked: 0, sat: 0, customers: 0, partners: 0, income: 0 });
-  return `${heading('Your Connectors', 'Only Connectors with access granted to you are shown.', admin ? '<button class="btn btn-primary" data-action="new-connector">＋ Add New Connector</button>' : '')}${allowed.length > 1 ? `<div class="panel" style="margin-bottom:14px"><div class="panel-head"><div><h2>Portfolio snapshot</h2><p>${allowed.length} active Connectors · ${state.period.toLowerCase()}</p></div></div><div class="metric-grid">${metricCard('Active Connectors',allowed.length,'var(--purple-2)')}${metricCard('Leads',total.leads,'var(--blue)')}${metricCard('Appointments',total.booked,'var(--purple-2)')}${metricCard('Sat',total.sat,'var(--blue)')}${metricCard('Customers',total.customers,'var(--pink)')}${metricCard('Connector income',fmtMoney(total.income),'var(--green)')}</div></div>` : ''}<div class="connector-list">${portfolio.map(row => `<article class="connector-card"><div class="connector-logo">${logoMarkup(row.item)}</div><div class="connector-meta"><strong>${escapeHtml(row.item.name)}</strong><span>${row.item.code} · ${row.leadsCount} Leads · ${row.customers} customers · ${fmtMoney(row.income)} test income</span></div><span class="badge green">Active</span>${admin ? `<button class="btn btn-secondary btn-sm" data-edit-connector="${row.item.id}">Edit</button>` : ''}<button class="card-arrow" data-select-connector="${row.item.id}" aria-label="Open ${escapeHtml(row.item.name)}">›</button></article>`).join('')}</div>${admin ? `<div class="panel" style="margin-top:17px"><div class="panel-head"><div><h2>Partner access</h2><p>Local prototype access list · enforcement belongs in the cloud API</p></div></div><div class="table-wrap"><table><thead><tr><th>Connector</th><th>Partner</th><th>Access role</th><th>Access</th></tr></thead><tbody>${state.access.filter(access => allowed.some(item => item.id === access.connectorId)).map(access => `<tr><td>${escapeHtml(connector(access.connectorId)?.name || '')}</td><td>${userName(access.userId)}</td><td>${access.role}</td><td><span class="badge green">Granted</span></td></tr>`).join('')}</tbody></table></div></div>` : ''}`;
+  return `${heading('Your Connectors', 'Only Connectors with access granted to you are shown.', admin ? '<button class="btn btn-primary" data-action="new-connector">＋ Add New Connector</button>' : '')}${allowed.length > 1 ? `<div class="panel" style="margin-bottom:14px"><div class="panel-head"><div><h2>Portfolio snapshot</h2><p>${allowed.length} active Connectors · ${state.period.toLowerCase()}</p></div></div><div class="metric-grid">${metricCard('Active Connectors',allowed.length,'var(--purple-2)')}${metricCard('Leads',total.leads,'var(--blue)')}${metricCard('Appointments',total.booked,'var(--purple-2)')}${metricCard('Sat',total.sat,'var(--blue)')}${metricCard('Customers',total.customers,'var(--pink)')}${metricCard('Connector income',fmtMoney(total.income),'var(--green)')}</div></div>` : ''}<div class="connector-list">${portfolio.map(row => `<article class="connector-card"><div class="connector-logo">${logoMarkup(row.item)}</div><div class="connector-meta"><strong>${escapeHtml(row.item.name)}</strong><span>${row.item.code} · ${row.leadsCount} Leads · ${row.customers} customers · ${fmtMoney(row.income)} test income</span></div><span class="badge green">Active</span>${admin ? `<button class="btn btn-secondary btn-sm" data-edit-connector="${row.item.id}">Edit</button>` : ''}<button class="card-arrow" data-select-connector="${row.item.id}" aria-label="Open ${escapeHtml(row.item.name)}">›</button></article>`).join('')}</div>${admin ? `<div class="panel" style="margin-top:17px"><div class="panel-head"><div><h2>Partner access</h2><p>Cloud access permissions checked on every server request</p></div></div><div class="table-wrap"><table><thead><tr><th>Connector</th><th>Partner</th><th>Access role</th><th>Access</th></tr></thead><tbody>${state.access.filter(access => allowed.some(item => item.id === access.connectorId)).map(access => `<tr><td>${escapeHtml(connector(access.connectorId)?.name || '')}</td><td>${userName(access.userId)}</td><td>${access.role}</td><td><span class="badge green">Granted</span></td></tr>`).join('')}</tbody></table></div></div>` : ''}`;
+}
+function cloudConnectorView() {
+  const html = connectorView();
+  if (!cloudCrmReady || !isConnectorAdmin()) return html;
+  return `${html}<section class="panel"><h2>Grant Connector access</h2><p>Use an existing Partner ID from the shared Partner directory. CAT checks this Connector grant on every cloud request.</p><form id="cloud-connector-access-form"><div class="form-grid"><label class="field">Partner ID<input name="partnerId" autocomplete="off" maxlength="60" required placeholder="Existing Companion Partner ID"></label><label class="field">Access role<select name="role"><option value="Editor">Partner</option><option value="Admin">Connector Admin</option></select></label></div><div class="modal-actions"><button class="btn btn-primary" type="submit">Grant access</button></div></form></section>`;
 }
 function eventDetailView() {
   const activity = activityById(activeActivityId); if (!activity) return `${heading('Event not found')}<button class="btn btn-secondary" data-route="activities">Back to activities</button>`;
@@ -531,7 +557,7 @@ function eventDayView() {
   activeActivityId = activity.id; const leads = activityLeads(activity.id); const forms = state.stats.filter(stat => stat.activityId === activity.id).reduce((sum, stat) => sum + stat.forms20K, 0); const mine = statFor(activity.id, state.currentUserId);
   return `${heading('Event Day', `${escapeHtml(activity.name)} · ${prettyDate(activity.date)}`, `<button class="btn btn-secondary" data-edit-activity="${activity.id}">Edit Activity</button>`)}<div class="event-day-hero"><div><div class="eyebrow">LIVE WORKSPACE</div><h2>${escapeHtml(activity.name)}</h2><p>${escapeHtml(activity.channel)} · ${leads.length} Leads linked today</p></div><span class="badge green">Today</span></div><div class="event-day-actions"><button class="event-day-button" data-count="1"><strong>+ 20K</strong><small>Add one form to my count (${mine})</small></button><button class="event-day-button" data-action="event-fast-lead"><strong>＋ Lead</strong><small>Add a Lead from this Event</small></button></div><div class="panel event-day-progress"><div class="panel-head"><div><h2>Progress</h2><p>Keep the next tap close</p></div><span class="badge green">${forms} team 20K</span></div><div class="quick-grid"><button class="quick-action" data-route="event"><span class="quick-icon">✓</span><span><strong>Quote sent</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">▣</span><span><strong>Appointment set</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">★</span><span><strong>Signed up</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">◎</span><span><strong>Open Leads</strong><small>Review this Event</small></span></button></div></div>`;
 }
-function aboutView() { return `${heading('About', 'Connector CRM release information.') }<div class="panel about-panel"><div class="brand about-brand"><div class="brand-mark">${logoMarkup(connector())}</div><div><div class="brand-name">Connector CRM</div><div class="brand-kicker">${escapeHtml(connector()?.name || 'Workspace')}</div></div></div><div class="about-version">Version ${escapeHtml(APP.version)}</div><p class="muted">A local-first Connector activity and results tracker.</p><div class="section-title">What's new</div><ul class="about-list">${APP.summary.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><div class="section-title">Version history</div><div class="activity-list">${APP.history.map(item => `<div class="activity-row"><div class="activity-symbol">#</div><div class="activity-copy"><strong>v${escapeHtml(item.version)}</strong><small>${prettyDate(item.date)} · ${escapeHtml(item.summary)}</small></div></div>`).join('')}</div></div>`; }
+function aboutView() { return `${heading('About', 'Connector Activity Tracker release information.') }<div class="panel about-panel"><div class="brand about-brand"><div class="brand-mark">${logoMarkup(connector())}</div><div><div class="brand-name">Connector Activity Tracker</div><div class="brand-kicker">${escapeHtml(connector()?.name || 'Workspace')}</div></div></div><div class="about-version">Version ${escapeHtml(APP.version)}</div><p class="muted">${demoMode ? 'Local demo only. Changes stay on this device and are not connected to the cloud.' : 'Authenticated Connector activity and results tracker.'}</p><div class="section-title">What's new</div><ul class="about-list">${APP.summary.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><div class="section-title">Version history</div><div class="activity-list">${APP.history.map(item => `<div class="activity-row"><div class="activity-symbol">#</div><div class="activity-copy"><strong>v${escapeHtml(item.version)}</strong><small>${prettyDate(item.date)} · ${escapeHtml(item.summary)}</small></div></div>`).join('')}</div></div>`; }
 function homeView() { const leads = periodLeads(selectedLeads()); const m = metrics(leads); const outstanding = needsUpdateLeads(selectedLeads()).length; return `${heading(`Good ${greeting()}, ${currentUser().name}`, 'What do you want to do?', '')}<div class="home-actions home-actions-v05">${homeAction('eventday', '🏀', 'EVENT DAY', "Run today's event")}${homeAction('leads', '👥', 'LEADS', 'Add and manage Leads')}${homeAction('inbox', '📥', 'ACTION INBOX', `${outstanding} Lead${outstanding === 1 ? '' : 's'} need updating`)}${homeAction('progress', '📊', 'RESULTS', "See what's working")}${homeAction('activities', '📚', 'ACTIVITIES', 'Plan and review Events, Campaigns and Ongoing activity')}</div><div class="monthly-snapshot"><div><strong>This month</strong><span>${m.forms} 20Ks · ${m.leads} Leads · ${m.booked} Set · ${m.sat} Sat · ${m.customers} Customers</span></div><button class="text-link" data-route="progress">View Results →</button></div><button class="setup-link" data-route="connectors">⚙ Setup / Admin</button>`; }
 function leadsView() { const query = state.search.toLowerCase(); const scoped = isConnectorAdmin() && leadScope === 'my' ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId) : selectedLeads(); const filtered = scoped.filter(lead => { const match = !query || `${lead.name} ${lead.channel} ${customerOutcome(lead)} ${userName(lead.partnerId)}`.toLowerCase().includes(query); const metric = leadFilter === 'leads' || leadFilter === 'all' ? true : leadFilter === 'set' ? historyHas(lead,'Booked') || ['Booked','Sat'].includes(lead.appointment) : leadFilter === 'sat' ? historyHas(lead,'Sat') || lead.appointment === 'Sat' : leadFilter === 'customers' ? outcomeIsCustomer(lead) : leadFilter === 'partners' ? partnerOutcome(lead) === 'Became a UW Partner' || lead.becamePartner : true; return match && metric; }); const labels = { leads: 'Leads', set: 'Appointments set', sat: 'Appointments sat', customers: 'Customers', partners: 'Partners' }; const contextual = labels[leadFilter] || ''; const back = contextual ? `<button class="context-back" data-route="progress">‹ Results</button>` : ''; const title = contextual || 'Leads'; const subtitle = contextual ? `${filtered.length} people · ${state.period}` : 'Add, manage and progress Leads.'; const scopeSwitch = isConnectorAdmin() ? `<div class="filter-row"><button class="filter-chip ${leadScope==='my'?'active':''}" data-lead-scope="my">My Leads</button><button class="filter-chip ${leadScope==='team'?'active':''}" data-lead-scope="team">Team Leads</button></div>` : ''; return `${back}${heading(title, subtitle, `<button class="btn btn-primary" data-action="newlead">＋ Add Lead</button>`)}${scopeSwitch}${leadFilter !== 'all' ? `<div class="callout" style="margin-bottom:12px">Showing ${escapeHtml(title.toLowerCase())} from ${state.period.toLowerCase()}.</div>` : ''}<div class="split-head" style="margin-bottom:12px"><div class="searchbox"><input data-search placeholder="Search Leads" value="${escapeHtml(state.search)}" aria-label="Search Leads"></div><span class="small muted">${filtered.length} active Leads</span></div><div class="lead-list">${filtered.length ? filtered.map(leadCard).join('') : '<div class="empty-state"><strong>No Leads match</strong>Add a Lead or adjust your search.</div>'}</div>`; }
 
@@ -540,7 +566,7 @@ function render() {
     if (publicReportError) { app.innerHTML = '<main class="content"><div class="panel"><h1>Report unavailable</h1><p class="muted">This report is not published on this device. The local prototype does not provide a public cloud report endpoint.</p></div></main>'; return; }
     app.innerHTML = `<main class="content"><div class="report-preview">${sharedReport()}</div></main>`; return;
   }
-  const views = { home: homeViewV07, eventday: eventDayV07, connectors: connectorView, about: aboutView, activities: activitiesView, newactivity: activityFormView, newlead: newLeadViewV07, leads: leadsView, lead: leadEditView, inbox: inboxView, followups: () => followupsView(), event: eventDetailView, eventfollowups: () => followupsView(activeActivityId), progress: progressView, reports: reportsView };
+  const views = { home: homeViewV07, eventday: eventDayV07, connectors: cloudConnectorView, about: aboutView, activities: activitiesView, newactivity: activityFormView, newlead: newLeadViewV07, leads: leadsView, lead: leadEditView, inbox: inboxView, followups: () => followupsView(), event: eventDetailView, eventfollowups: () => followupsView(activeActivityId), progress: progressView, reports: reportsView };
   const titles = { home:'Home', eventday:'Event Day', connectors:'Setup / Admin', about:'About', activities:'Activities', newactivity:'Log Activity', newlead:'Add Lead', leads:'Leads', lead:'Update Lead', inbox:'Action Inbox', followups:'Follow-ups', event:activityById(activeActivityId)?.name || 'Event detail', eventfollowups:'Event follow-ups', progress:'Results', reports:'Reports' };
   const view = views[state.route] || homeView; app.innerHTML = shell(view(), titles[state.route] || 'Home').replaceAll('Home status', 'Residential status');
   const topActions = app.querySelector('.top-actions');
@@ -578,6 +604,18 @@ function openEventLeadModal(activityId) {
 }
 function chooseProfile() { openModal('Switch sample Partner', `<p class="small muted">Use this local prototype to explore the Connector view for each team Partner.</p><div class="lead-list">${state.users.filter(user => user.active).map(user => `<button class="connector-card" data-switch-user="${user.id}"><span class="avatar">${user.name.slice(0,1)}</span><span class="connector-meta"><strong>${user.name}</strong><span>${user.role === 'Admin' ? 'Team Admin' : 'Partner'}</span></span>${user.id === state.currentUserId ? '<span class="badge green">Current</span>' : ''}</button>`).join('')}</div>`); }
 function openConnectorForm(item = null) { openModal(item ? 'Edit Connector' : 'Add a Connector', `<form id="connector-form"><input type="hidden" name="connectorId" value="${item?.id || ''}"><div class="field"><label>Connector / organisation name</label><input name="name" required maxlength="60" placeholder="e.g. Bright Hope" value="${escapeHtml(item?.name || '')}"></div><div class="field" style="margin-top:12px"><label>Main contact name · optional</label><input name="contact" maxlength="40" value="${escapeHtml(item?.mainContactName || '')}"></div><div class="field" style="margin-top:12px"><label>Connector logo</label><input name="logo" type="file" accept="image/*"></div><div class="form-grid" style="margin-top:12px"><div class="field"><label>Primary brand colour</label><input name="primaryColor" type="color" value="${safeHex(item?.primaryColor) || '#351065'}"></div><div class="field"><label>Accent colour</label><input name="accentColor" type="color" value="${safeHex(item?.accentColor) || '#5c2e9a'}"></div></div><div class="callout" style="margin-top:12px">Brand colours apply to selected controls and key actions. A private report token is generated automatically.</div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary">${item ? 'Save changes' : 'Create Connector'}</button></div></form>`); }
+async function readConnectorLogo(file) {
+  if (!cloudCrmReady) return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
+  if (typeof createImageBitmap !== 'function') throw new Error('This browser cannot safely prepare the Connector logo for cloud saving.');
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 128 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close?.();
+  let data = canvas.toDataURL('image/webp', 0.68);
+  if (data.length > 12000) data = canvas.toDataURL('image/jpeg', 0.42);
+  if (data.length > 12000) throw new Error('The Connector logo is still too large. Choose a simpler or smaller image.');
+  return data;
+}
 function openRuleForm() { openModal('Add test commission rule', `<form id="rule-form"><div class="callout"><strong>TEST RULE ONLY.</strong> Add only verified values when the current rules table has been supplied.</div><div class="form-grid" style="margin-top:13px"><div class="field full"><label>Rule label</label><input name="label" required placeholder="TEST ONLY: qualifying basket"></div><div class="field"><label>Effective from</label><input type="date" name="effectiveFrom" value="${today}" required></div><div class="field"><label>Version</label><input name="version" value="TEST-${today.slice(0,4)}-02" required></div>${[['energy','Energy'],['broadband','Broadband'],['insurance','Insurance']].map(([key,label]) => `<label class="product-choice"><input type="checkbox" name="${key}"> ${label}</label>`).join('')}<div class="field"><label>Essentials SIM (0–2)</label><select name="essentials"><option>0</option><option>1</option><option>2</option></select></div><div class="field"><label>Unlimited SIM (0–2)</label><select name="unlimited"><option>0</option><option>1</option><option>2</option></select></div><div class="field"><label>Partner amount · test</label><input type="number" name="partner" min="0" step="1" required></div><div class="field"><label>Connector amount · test</label><input type="number" name="connector" min="0" step="1" required></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary">Save test rule</button></div></form>`); }
 
 document.addEventListener('click', async event => {
@@ -692,6 +730,7 @@ app.addEventListener('submit', async event => {
     user.name = name; commit(`Updated profile for ${name}`, state.selectedConnectorId, 'user', user.id, 'update', { ...user }); closeModal(); render(); showToast('Profile saved'); return;
   }
   if (form.id === 'create-profile-form') {
+    if (cloudCrmReady) { showToast('Add an existing Companion Partner ID through Connector access settings.'); return; }
     if (!isConnectorAdmin()) { showToast('Only a Connector Admin can create profiles'); return; }
     const name = String(data.get('name') || '').trim(); const file = data.get('avatar'); if (!name) { showToast('Enter a profile name'); return; }
     const user = { id: uid(), name, role: 'Partner', active: true };
@@ -702,15 +741,15 @@ app.addEventListener('submit', async event => {
     const name = String(data.get('name')).trim(); const id = String(data.get('connectorId') || ''); const logoFile = data.get('logo'); let logo = '';
     if (logoFile?.size) {
       if (!logoFile.type.startsWith('image/') || logoFile.size > 1572864) { showToast('Choose an image smaller than 1.5 MB'); return; }
-      logo = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(logoFile); });
+      try { logo = await readConnectorLogo(logoFile); } catch (error) { showToast(error.message); return; }
     }
     if (id) {
       const item = connector(id); if (!item || !hasAccess(id)) return;
       Object.assign(item, { name, mainContactName: String(data.get('contact') || '').trim(), primaryColor: safeHex(data.get('primaryColor')) || '#351065', accentColor: safeHex(data.get('accentColor')) || '#5c2e9a', updatedAt: new Date().toISOString() }); if (logo) item.logo = logo;
-      commit(`Updated Connector ${name}`, item.id, 'connector', item.id); closeModal(); render(); showToast('Connector updated'); return;
+      commit(`Updated Connector ${name}`, item.id, 'connector', item.id, 'update', { ...item }); closeModal(); render(); showToast(cloudCrmReady ? 'Connector change queued for cloud save' : 'Connector change queued for cloud save'); return;
     }
     let code; do { code = `CN-${Math.random().toString(36).slice(2,6).toUpperCase()}`; } while (state.connectors.some(item => item.code === code));
-    const item = { id: uid(), code, name, active: true, logo: logo || '◈', primaryColor: safeHex(data.get('primaryColor')) || '#351065', accentColor: safeHex(data.get('accentColor')) || '#5c2e9a', reportToken: uid(), mainContactName: String(data.get('contact') || '').trim(), createdAt: new Date().toISOString() }; state.connectors.push(item); state.access.push({ connectorId: item.id, userId: state.currentUserId, role: 'Admin' }); state.selectedConnectorId = item.id; commit(`Created Connector ${name}`, item.id, 'connector', item.id, 'create', { ...item }); closeModal(); navigate('home'); showToast(`${name} is ready`); return;
+    const item = { id: uid(), code, name, active: true, logo: logo || '◈', primaryColor: safeHex(data.get('primaryColor')) || '#351065', accentColor: safeHex(data.get('accentColor')) || '#5c2e9a', reportToken: uid(), mainContactName: String(data.get('contact') || '').trim(), createdAt: new Date().toISOString() }; state.connectors.push(item); state.access.push({ connectorId: item.id, userId: state.currentUserId, role: 'Admin' }); state.selectedConnectorId = item.id; commit(`Created Connector ${name}`, item.id, 'connector', item.id, 'create', { ...item }); closeModal(); navigate('home'); showToast(cloudCrmReady ? 'Connector saved locally; waiting for cloud confirmation' : `${name} is ready`); return;
   }
   if (form.id === 'rule-form') {
     const rule = { id: uid(), version: String(data.get('version')).trim(), effectiveFrom: data.get('effectiveFrom'), effectiveTo: '', products: { energy: data.has('energy'), broadband: data.has('broadband'), insurance: data.has('insurance'), essentials: Number(data.get('essentials')), unlimited: Number(data.get('unlimited')) }, partner: Number(data.get('partner')), connector: Number(data.get('connector')), label: `TEST ONLY: ${String(data.get('label')).trim()}` };
@@ -727,7 +766,9 @@ function saveLeadResult() {
   const changedBasket = !previous || JSON.stringify(previous.services) !== JSON.stringify(services);
   if (services && changedBasket && (outcomeIsCustomer(lead) || serviceCount({ ...lead, services }))) {
     const calc = commissionFor(services, today);
-    state.customerResults.push({ id: uid(), leadId: lead.id, connectorId: lead.connectorId, resultDate: today, services: { ...services }, partnerCommission: calc.partner, connectorCommission: calc.connector, ruleVersion: calc.version, createdAt: new Date().toISOString() });
+    const result = { id: uid(), leadId: lead.id, connectorId: lead.connectorId, resultDate: today, services: { ...services }, partnerCommission: calc.partner, connectorCommission: calc.connector, ruleVersion: calc.version, createdAt: new Date().toISOString() };
+    state.customerResults.push(result);
+    commit(`Saved customer result for ${lead.name}`, lead.connectorId, 'customer-result', result.id, 'create', result);
     lead.services = { ...services }; lead.partnerCommission = calc.partner; lead.connectorCommission = calc.connector; lead.commissionRuleVersion = calc.version; lead.resultDate = today;
     addHistory(lead, `Customer result saved using ${calc.version}`);
   }
@@ -771,7 +812,7 @@ function shell(content, title) {
   const periodControl = state.route === 'progress'
     ? `<select class="period-select" data-period aria-label="Results period">${periods.map(period => `<option ${period === state.period ? 'selected' : ''}>${period}</option>`).join('')}</select>`
     : '';
-  return `<div class="app-shell" style="--brand-primary:${primary};--brand-accent:${accent};--brand-on-primary:${readableText(primary)};--brand-on-accent:${readableText(accent)}"><aside class="sidebar"><div class="brand"><div class="brand-mark">${logoMarkup(brand)}</div><div><div class="brand-name">Connector CRM</div><div class="brand-kicker">${escapeHtml(brand?.name || 'Workspace')}</div></div></div><div class="side-label">Workspace</div><nav class="nav-list" aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><div class="local-state"><strong>✓ Saved on this device</strong>${state.outbox.length ? `${state.outbox.length} local change${state.outbox.length === 1 ? '' : 's'} queued` : 'Cloud sync is not connected'}</div><button class="profile-switch" data-action="profile"><span class="avatar">${avatarMarkup(user)}</span><span class="profile-copy"><span class="profile-name">${escapeHtml(user.name)}</span><span class="profile-role">${user.role === 'Admin' ? 'Team Admin' : 'Partner'} · Setup & profile</span></span><span aria-hidden="true">⌄</span></button></div></aside><main class="main-area"><header class="topbar"><div class="crumbs"><span class="connector-mini-logo">${logoMarkup(brand)}</span><span class="connector-context">${escapeHtml(brand?.name || 'Connector')}</span><span aria-hidden="true">›</span><strong>${escapeHtml(title)}</strong></div><div class="top-actions"><span class="sync-pill" title="Changes are stored on this device. Cloud sync is not connected.">● On this device</span>${periodControl}<button class="profile-name-button" data-action="profile" title="Profile and setup"><span class="avatar">${avatarMarkup(user)}</span>${escapeHtml(user.name)}</button></div></header><section class="content">${content}</section></main><nav class="mobile-nav" aria-label="Main navigation">${mobileNav}</nav></div>`;
+  return `<div class="app-shell" style="--brand-primary:${primary};--brand-accent:${accent};--brand-on-primary:${readableText(primary)};--brand-on-accent:${readableText(accent)}"><aside class="sidebar"><div class="brand"><div class="brand-mark">${logoMarkup(brand)}</div><div><div class="brand-name">Connector Activity Tracker</div><div class="brand-kicker">${escapeHtml(brand?.name || 'Workspace')}</div></div></div><div class="side-label">Workspace</div><nav class="nav-list" aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><div class="local-state"><strong>${demoMode ? 'Demo · saved on this device' : cloudSyncError ? 'Saved locally · sync needs attention' : state.outbox.length ? 'Saved locally · sync queued' : 'Saved to cloud'}</strong>${state.outbox.length ? `${state.outbox.length} change${state.outbox.length === 1 ? '' : 's'} waiting to sync` : demoMode ? 'Cloud sync is not connected' : 'All changes acknowledged by CAT Cloud'}</div><button class="profile-switch" data-action="profile"><span class="avatar">${avatarMarkup(user)}</span><span class="profile-copy"><span class="profile-name">${escapeHtml(user.name)}</span><span class="profile-role">${user.role === 'Admin' ? 'Team Admin' : 'Partner'} · Setup & profile</span></span><span aria-hidden="true">⌄</span></button></div></aside><main class="main-area"><header class="topbar"><div class="crumbs"><span class="connector-mini-logo">${logoMarkup(brand)}</span><span class="connector-context">${escapeHtml(brand?.name || 'Connector')}</span><span aria-hidden="true">›</span><strong>${escapeHtml(title)}</strong></div><div class="top-actions"><span class="sync-pill" title="${demoMode ? 'Local demo data only. Cloud sync is not connected.' : cloudSyncError || (state.outbox.length ? 'Changes are queued until the cloud confirms them.' : 'All changes are acknowledged by CAT Cloud.')}">${demoMode ? '● Demo' : cloudSyncError ? '● Sync issue' : state.outbox.length ? '● Sync queued' : '● Synced'}</span>${periodControl}<button class="profile-name-button" data-action="profile" title="Profile and setup"><span class="avatar">${avatarMarkup(user)}</span>${escapeHtml(user.name)}</button></div></header>${demoMode ? '<div class="demo-banner">Local demo · changes stay on this device. Sign in from the app launch page to use the cloud workspace.</div>' : ''}<section class="content">${content}</section></main><nav class="mobile-nav" aria-label="Main navigation">${mobileNav}</nav></div>`;
 }
 function homeView() { return eventDayView(); }
 function homeViewV07() {
@@ -848,12 +889,12 @@ function newLeadViewV07() {
   const channels = CHANNELS.map(channel => '<option ' + (channel === (contextual ? '20K Event' : 'Unknown') ? 'selected' : '') + '>' + channel + '</option>').join('');
   const activities = activeConnectorActivities().filter(activity => activity.type === 'Event').map(activity => '<option value="' + activity.id + '" ' + (activity.id === contextualActivityId ? 'selected' : '') + '>' + escapeHtml(activity.name) + ' · ' + prettyDate(activity.date) + '</option>').join('');
   const chips = !origin && contextual && eligible.length ? '<div class="field full"><label>Link an existing 20K from today</label><div class="filter-row lead-origin-chips">' + eligible.slice(0,5).map(record => '<button type="button" class="filter-chip" onclick="selectLeadOrigin20K(\'' + record.id + '\')">' + escapeHtml(record.name) + '</button>').join('') + '</div>' + (eligible.length > 5 ? '<details><summary>More 20Ks</summary><div class="filter-row">' + eligible.slice(5).map(record => '<button type="button" class="filter-chip" onclick="selectLeadOrigin20K(\'' + record.id + '\')">' + escapeHtml(record.name) + '</button>').join('') + '</div></details>' : '') + '</div>' : '';
-  return heading('Add a Lead', 'A first name is enough.', '<button class="btn btn-secondary" data-route="' + (leadReturnRoute || (contextual ? 'eventday' : 'leads')) + '">Cancel</button>') + '<div class="form-shell"><form class="panel" id="lead-form"><input type="hidden" name="origin20KId" value="' + (origin?.id || '') + '"><input type="hidden" name="activityId" value="' + (contextualActivityId || '') + '"><div class="form-grid">' + chips + '<div class="field full"><label for="lead-name">First name / short identifier</label><input id="lead-name" name="name" required maxlength="40" autocomplete="off" value="' + escapeHtml(origin?.name || '') + '" placeholder="e.g. Sarah"></div><div class="field"><label for="lead-date">Date received</label><input id="lead-date" name="received" type="date" value="' + (origin?.eventDate || activityById(contextualActivityId)?.date || today) + '" required></div>' + (contextual ? '<div class="field"><label>Channel</label><input value="20K Event" disabled><input type="hidden" name="channel" value="20K Event"></div><div class="field full"><label>Event</label><input value="' + escapeHtml(activityById(contextualActivityId)?.name || 'Event') + ' · ' + prettyDate(activityById(contextualActivityId)?.date) + '" disabled></div>' : '<div class="field"><label for="lead-channel">Channel</label><select id="lead-channel" name="channel" data-lead-channel>' + channels + '</select></div><div class="field full lead-event-field" hidden><label for="lead-activity">Event · select when Channel is 20K Event</label><select id="lead-activity" name="eventSelect"><option value="">Choose Event</option>' + activities + '</select></div>') + '<div class="field"><label>Generated by</label><input value="' + escapeHtml(currentUser().name) + '" disabled></div></div>' + (origin ? '<div class="callout" style="margin-top:14px">Linked to 20K at ' + escapeHtml(activityById(origin.activityId)?.name || 'Event') + ' · ' + prettyDate(origin.eventDate) + '</div>' : '') + '<div class="modal-actions"><button class="btn btn-primary" type="submit" name="submitMode" value="close">Save &amp; Close</button><button class="btn btn-secondary" type="submit" name="submitMode" value="open">Save &amp; Open Lead</button></div></form></div>';
+  return heading('Add a Lead', 'A first name is enough.', '<button class="btn btn-secondary" data-route="' + (leadReturnRoute || (contextual ? 'eventday' : 'leads')) + '">Cancel</button>') + '<div class="form-shell"><form class="panel" id="lead-form"><input type="hidden" name="origin20KId" value="' + (origin?.id || '') + '"><input type="hidden" name="activityId" value="' + (contextualActivityId || '') + '"><div class="form-grid">' + chips + '<div class="field full"><label for="lead-name">First name / short identifier</label><input id="lead-name" name="name" required maxlength="40" autocomplete="off" value="' + escapeHtml(origin?.name || '') + '" placeholder="e.g. Demo Lead 01"></div><div class="field"><label for="lead-date">Date received</label><input id="lead-date" name="received" type="date" value="' + (origin?.eventDate || activityById(contextualActivityId)?.date || today) + '" required></div>' + (contextual ? '<div class="field"><label>Channel</label><input value="20K Event" disabled><input type="hidden" name="channel" value="20K Event"></div><div class="field full"><label>Event</label><input value="' + escapeHtml(activityById(contextualActivityId)?.name || 'Event') + ' · ' + prettyDate(activityById(contextualActivityId)?.date) + '" disabled></div>' : '<div class="field"><label for="lead-channel">Channel</label><select id="lead-channel" name="channel" data-lead-channel>' + channels + '</select></div><div class="field full lead-event-field" hidden><label for="lead-activity">Event · select when Channel is 20K Event</label><select id="lead-activity" name="eventSelect"><option value="">Choose Event</option>' + activities + '</select></div>') + '<div class="field"><label>Generated by</label><input value="' + escapeHtml(currentUser().name) + '" disabled></div></div>' + (origin ? '<div class="callout" style="margin-top:14px">Linked to 20K at ' + escapeHtml(activityById(origin.activityId)?.name || 'Event') + ' · ' + prettyDate(origin.eventDate) + '</div>' : '') + '<div class="modal-actions"><button class="btn btn-primary" type="submit" name="submitMode" value="close">Save &amp; Close</button><button class="btn btn-secondary" type="submit" name="submitMode" value="open">Save &amp; Open Lead</button></div></form></div>';
 }
 function openTwentyKForm(activityId) {
   const activity = activityById(activityId);
   if (!activity || activity.type !== 'Event') return;
-  openModal('Add a 20K', '<form id="twenty-k-form"><div class="field"><label for="twenty-k-name">First name / short identifier</label><input id="twenty-k-name" name="name" required maxlength="40" autocomplete="off" placeholder="e.g. Sarah"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div></form>');
+  openModal('Add a 20K', '<form id="twenty-k-form"><div class="field"><label for="twenty-k-name">First name / short identifier</label><input id="twenty-k-name" name="name" required maxlength="40" autocomplete="off" placeholder="e.g. Demo Lead 01"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div></form>');
   document.getElementById('twenty-k-form')?.setAttribute('data-activity-id', activityId);
 }
 function activityFormV07() {
@@ -918,13 +959,174 @@ function chooseProfile() {
   openModal('Profile and setup', `<form id="profile-form"><div class="field"><label>Your profile name</label><input name="name" maxlength="60" required value="${escapeHtml(user.name)}"></div><div class="field" style="margin-top:10px"><label>Profile photo · optional</label><input name="avatar" type="file" accept="image/*"></div><div class="modal-actions"><button class="btn btn-primary">Save profile</button>${user.role === 'Admin' ? '<button type="button" class="btn btn-secondary" data-action="new-profile">＋ Create profile</button>' : ''}</div></form><div class="lead-list" style="margin-top:15px">${state.users.filter(item => item.active).map(item => `<button class="connector-card profile-option" data-switch-user="${item.id}"><span class="avatar">${avatarMarkup(item)}</span><span class="connector-meta"><strong>${escapeHtml(item.name)}</strong><span>${item.role === 'Admin' ? 'Team Admin' : 'Partner'}</span></span>${item.id === state.currentUserId ? '<span class="badge green">Current</span>' : ''}</button>`).join('')}</div><div class="profile-menu-actions"><button class="btn btn-secondary" data-route="connectors">⚙ Setup / Admin</button><button class="btn btn-secondary" data-route="about">About · v${escapeHtml(APP.version)}</button></div>`);
 }
 function openNewProfileForm() { openModal('Create profile', `<form id="create-profile-form"><div class="field"><label>Person / profile name</label><input name="name" required maxlength="60"></div><div class="field" style="margin-top:10px"><label>Profile photo · optional</label><input name="avatar" type="file" accept="image/*"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="profile">Cancel</button><button class="btn btn-primary">Create profile</button></div></form>`); }
+function renderCloudLogin() {
+  const configured = window.ConnectorTrackerCloud?.configured;
+  app.innerHTML = `<main class="cloud-auth-page"><section class="cloud-auth-card"><div class="cloud-auth-brand"><span class="brand-mark">🏀</span><div><strong>Connector Activity Tracker</strong><small>Independent organisation workspace</small></div></div><h1>Sign in</h1><p>Use your existing Partner ID and Companion password.</p>${!configured ? '<div class="cloud-message cloud-message-info">Cloud sign-in is not configured yet. The administrator needs to deploy the CAT Cloud script and add its public endpoint.</div>' : ''}${cloudError ? `<div class="cloud-message cloud-message-error" role="alert">${escapeHtml(cloudError)}</div>` : ''}<form id="tracker-login-form"><label class="cloud-field">Partner ID<input name="partnerId" autocomplete="username" required maxlength="120" value="${escapeHtml(cloudPartnerIdDraft)}" ${cloudBusy || !configured ? 'disabled' : ''}></label><label class="cloud-field">Password<input name="password" type="password" autocomplete="current-password" required maxlength="512" ${cloudBusy || !configured ? 'disabled' : ''}></label><button class="btn btn-primary cloud-signin" type="submit" ${cloudBusy || !configured ? 'disabled' : ''}>${cloudBusy ? 'Signing in…' : 'Sign in securely'}</button></form><p class="cloud-auth-note">Your password is checked by the shared Partner service. CAT does not save it.</p><a class="cloud-demo-link" href="?demo=1">Open the local demo</a></section><footer>Connector Activity Tracker · v${escapeHtml(APP.version)}</footer></main>`;
+}
+function renderCloudWorkspace() {
+  const profile = cloudSession?.profile || {};
+  const connectors = cloudSession?.connectors || [];
+  if (!connectors.some(item => item.id === cloudConnectorId)) cloudConnectorId = connectors[0]?.id || '';
+  const selectedConnector = connectors.find(item => item.id === cloudConnectorId);
+  const currentRecord = cloudTestRecord?.connectorId === cloudConnectorId ? cloudTestRecord : null;
+  const busyText = cloudBusy ? '<div class="cloud-message cloud-message-info">Working with CAT Cloud…</div>' : '';
+  const errorText = cloudError ? `<div class="cloud-message cloud-message-error" role="alert">${escapeHtml(cloudError)}</div>` : '';
+  const avatar = profile.photoUrl ? `<img src="${escapeHtml(profile.photoUrl)}" alt="" referrerpolicy="no-referrer">` : escapeHtml((profile.name || '?').slice(0, 1).toUpperCase());
+  app.innerHTML = `<main class="cloud-workspace"><header class="cloud-workspace-head"><div class="cloud-auth-brand"><span class="brand-mark">🏀</span><div><strong>Connector Activity Tracker</strong><small>Authenticated cloud workspace</small></div></div><div class="cloud-user"><span class="cloud-avatar">${avatar}</span><span><strong>${escapeHtml(profile.name || profile.partnerId)}</strong><small>${escapeHtml(profile.partnerId)}</small></span><button type="button" class="btn btn-secondary btn-sm" data-cloud-action="logout" ${cloudBusy ? 'disabled' : ''}>Sign out</button></div></header><section class="cloud-workspace-body"><div class="page-heading"><div><h1>Welcome, ${escapeHtml(profile.name || 'Partner')}</h1><p>Your shared Partner identity is verified. Connector access is checked by the server.</p></div><span class="badge green">Authenticated</span></div>${connectors.length > 1 ? `<label class="cloud-field cloud-connector-picker">Connector<select id="cloud-connector-select">${connectors.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === cloudConnectorId ? 'selected' : ''}>${escapeHtml(item.name)} · ${escapeHtml(item.role)}</option>`).join('')}</select></label>` : `<div class="cloud-connector-label">Connector · <strong>${escapeHtml(selectedConnector?.name || 'None assigned')}</strong></div>`}${busyText}${errorText}<section class="panel cloud-phase-card"><div class="panel-head"><div><h2>Phase 1 cloud check</h2><p>This private test record verifies cloud create, read and update.</p></div><span class="badge ${currentRecord ? 'green' : 'booked'}">${currentRecord ? 'Saved in cloud' : 'No test record yet'}</span></div><form id="cloud-test-form"><label class="cloud-field">Test message <small>Use test text only. Do not enter a person's or customer's details.</small><textarea name="message" maxlength="120" rows="3" placeholder="For example: CAT device sync check" ${cloudBusy || !selectedConnector ? 'disabled' : ''}>${escapeHtml(currentRecord?.message ?? cloudMessage)}</textarea></label><button class="btn btn-primary" type="submit" ${cloudBusy || !selectedConnector ? 'disabled' : ''}>${cloudBusy ? 'Saving…' : currentRecord ? 'Update cloud test record' : 'Create cloud test record'}</button></form>${currentRecord ? `<p class="cloud-record-meta">Cloud acknowledged · version ${Number(currentRecord.version)} · ${escapeHtml(currentRecord.updatedAt ? new Date(currentRecord.updatedAt).toLocaleString('en-GB') : '')}</p>` : ''}</section><section class="panel cloud-phase-card"><h2>CRM workflow status</h2><p>The approved Event Day, Lead, 20K, appointment, follow-up and reporting screens are preserved in the local demo. Their records are not yet connected to cloud storage, so this authenticated workspace keeps them separate until Phase 2.</p><a class="btn btn-secondary" href="?demo=1">Preview the local demo</a></section><details class="panel cloud-phase-card cloud-about"><summary>About · v${escapeHtml(APP.version)}</summary><p class="muted">${escapeHtml(APP.summary[0] || '')}</p><ul class="about-list">${APP.summary.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><div class="cloud-about-history">${APP.history.slice(0, 4).map(item => `<p><strong>v${escapeHtml(item.version)}</strong> · ${escapeHtml(item.summary)}</p>`).join('')}</div></details></section></main>`;
+}
+function renderCloudGate() {
+  if (demoMode || cloudCrmReady) return false;
+  if (!cloudSession) renderCloudLogin();
+  else app.innerHTML = `<main class="cloud-auth-page"><section class="cloud-auth-card"><strong>Connector Activity Tracker</strong><h1>${cloudBusy ? 'Loading your workspace…' : 'Cloud workspace needs attention'}</h1><p>${escapeHtml(cloudError || 'CAT is checking your access and loading shared Connector records.')}</p>${!cloudBusy ? '<button class="btn btn-primary" data-cloud-action="reload">Try again</button>' : ''}<button class="btn btn-secondary" data-cloud-action="logout">Sign out</button></section></main>`;
+  return true;
+}
+const cloudCollectionByEntity = Object.freeze({
+  activity: 'activities', 'twenty-k': 'twentyKRecords', lead: 'leads',
+  'activity-partner-stat': 'stats', 'customer-result': 'customerResults',
+  'generated-partner': 'generatedPartners', 'commission-rule': 'commissionRules'
+});
+function cloudRecordKey(connectorId, entity, recordId) { return `${connectorId}::${entity}::${recordId}`; }
+function cloudApplyRecord(target, entity, connectorId, recordId, payload, deleted = false) {
+  const collection = cloudCollectionByEntity[entity]; if (!collection) return;
+  target[collection] ||= [];
+  const index = target[collection].findIndex(item => item.id === recordId && item.connectorId === connectorId);
+  if (deleted) { if (index >= 0) target[collection].splice(index, 1); return; }
+  const value = { ...payload, id: recordId, connectorId };
+  if (index >= 0) target[collection][index] = value; else target[collection].push(value);
+}
+function resolveCloudOutboxPayload(change, source = state) {
+  if (change.payload) return change.payload;
+  if (change.entity === 'connector') return source.connectors.find(item => item.id === change.entityId) || null;
+  const collection = cloudCollectionByEntity[change.entity];
+  if (!collection) return null;
+  const items = source[collection] || [];
+  return items.find(item => item.id === change.entityId) || (change.entity === 'generated-partner' ? items.find(item => item.originLeadId === change.entityId) : null) || null;
+}
+function applyPendingCloudChanges(target, pending, source) {
+  pending.forEach(change => {
+    if (!target.connectors.some(item => item.id === change.connectorId)) return;
+    const payload = resolveCloudOutboxPayload(change, source);
+    if (change.entity === 'connector') {
+      if (payload && !target.connectors.some(item => item.id === payload.id)) target.connectors.push(payload);
+      return;
+    }
+    if (!payload) return;
+    cloudApplyRecord(target, change.entity, change.connectorId, payload.id, payload, change.action === 'delete');
+  });
+}
+function applyCloudWorkspace(remote, local = null) {
+  const next = initialState();
+  ['activities', 'twentyKRecords', 'leads', 'stats', 'customerResults', 'generatedPartners', 'commissionRules', 'history'].forEach(key => { next[key] = []; });
+  next.connectors = remote.connectors || [];
+  next.access = remote.access || [];
+  next.users = remote.users || [];
+  next.currentUserId = cloudSession.profile.partnerId;
+  const current = next.users.find(item => item.id === next.currentUserId);
+  if (current) Object.assign(current, { name: cloudSession.profile.name || current.name, email: cloudSession.profile.email || '', mobile: cloudSession.profile.mobile || '', avatar: cloudSession.profile.photoUrl || '' });
+  next.outbox = Array.isArray(local?.outbox) ? local.outbox : [];
+  next.period = local?.period || 'This month';
+  next.reportTab = local?.reportTab || 'team';
+  next.route = ['lead', 'event', 'eventfollowups'].includes(local?.route) ? 'home' : (local?.route || 'home');
+  next.selectedConnectorId = next.connectors.some(item => item.id === local?.selectedConnectorId) ? local.selectedConnectorId : (next.connectors[0]?.id || '');
+  next.history = Array.isArray(local?.history) ? local.history : [];
+  cloudVersions.clear();
+  (remote.records || []).forEach(record => {
+    cloudVersions.set(cloudRecordKey(record.connectorId, record.entity, record.id), Number(record.version || 0));
+    cloudApplyRecord(next, record.entity, record.connectorId, record.id, record.payload);
+  });
+  applyPendingCloudChanges(next, next.outbox, local || next);
+  state = next;
+  cloudConnectorId = state.selectedConnectorId;
+  cloudCrmReady = true;
+  demoMode = false;
+}
+async function fetchCloudWorkspace({ initial = false } = {}) {
+  if (!cloudSession) return;
+  if (cloudRefreshPromise) return cloudRefreshPromise;
+  cloudRefreshPromise = (async () => {
+    const remote = await ConnectorTrackerCloud.getWorkspace();
+    const local = initial ? await loadState(stateStorageKey()) : state;
+    applyCloudWorkspace(remote, local);
+    await persist();
+    return remote;
+  })();
+  try { return await cloudRefreshPromise; }
+  finally { cloudRefreshPromise = null; }
+}
+async function syncCloudOutbox() {
+  if (!cloudSession || !cloudCrmReady || !navigator.onLine) { cloudSyncState = state?.outbox?.length ? 'queued' : 'idle'; updateCloudIndicator(); return; }
+  if (cloudSyncPromise) return cloudSyncPromise;
+  cloudSyncPromise = (async () => {
+    cloudSyncError = ''; cloudSyncState = 'saving'; updateCloudIndicator();
+    try {
+      while (state.outbox.length) {
+        const change = state.outbox[0];
+        if (!state.connectors.some(item => item.id === change.connectorId)) throw new Error('Access to a Connector in the local sync queue is no longer authorised. The pending changes remain stored on this device.');
+        const payload = resolveCloudOutboxPayload(change);
+        if (!payload) { throw new Error('A queued local change is missing its record. It has been kept on this device; refresh to review it.'); }
+        if (change.entity === 'connector') {
+          if (String(payload.logo || '').length > 12000) throw new Error('This Connector logo is too large for the cloud request. Choose a smaller image or use the Connector colour and symbol.');
+          await ConnectorTrackerCloud.saveConnector(payload);
+        } else {
+          const key = cloudRecordKey(change.connectorId, change.entity, payload.id);
+          const baseVersion = Number.isInteger(change.baseCloudVersion) ? change.baseCloudVersion : (cloudVersions.get(key) || 0);
+          const result = change.action === 'delete'
+            ? await ConnectorTrackerCloud.deleteRecord(change.entity, change.connectorId, payload.id, baseVersion, change.transactionId)
+            : await ConnectorTrackerCloud.saveRecord(change.entity, change.connectorId, payload.id, payload, baseVersion, change.transactionId);
+          cloudVersions.set(key, Number(result.version));
+        }
+        state.outbox.shift();
+        cloudSyncError = '';
+        await persist();
+      }
+      cloudSyncState = 'saved';
+    } catch (error) {
+      cloudSyncError = error.message || 'Cloud sync failed.';
+      cloudSyncState = 'error';
+      if (/session|sign in again|revoked|inactive|not authorised/i.test(cloudSyncError)) { cloudSession = null; cloudCrmReady = false; }
+    } finally {
+      cloudSyncPromise = null; updateCloudIndicator();
+      if (cloudSyncError && cloudCrmReady) showToast('Saved on this device; cloud sync needs attention');
+      if (!cloudCrmReady) renderCloudGate();
+    }
+  })();
+  return cloudSyncPromise;
+}
+function updateCloudIndicator() {
+  const pill = document.querySelector('.sync-pill'); if (!pill || !cloudCrmReady) return;
+  if (cloudSyncError) { pill.textContent = '● Local copy · sync needs attention'; pill.title = cloudSyncError; }
+  else if (state.outbox.length || cloudSyncState === 'saving') { pill.textContent = navigator.onLine ? '● Saving to cloud…' : '● Saved locally · waiting for connection'; pill.title = state.outbox.length + ' change(s) waiting to sync.'; }
+  else { pill.textContent = '● Synced to cloud'; pill.title = 'All changes have been acknowledged by CAT Cloud.'; }
+  const localState = document.querySelector('.local-state strong');
+  if (localState) localState.textContent = cloudSyncError ? 'Saved locally · cloud sync needs attention' : state.outbox.length ? 'Saved locally · cloud sync pending' : 'Cloud changes acknowledged';
+}
+async function reloadCloudWorkspace({ initial = false, rerender = true } = {}) {
+  if (!cloudSession) return;
+  try {
+    await fetchCloudWorkspace({ initial });
+    cloudSyncError = '';
+    if (state.outbox.length) await syncCloudOutbox();
+    cloudBusy = false; cloudError = '';
+    if (rerender && cloudCrmReady) render();
+  } catch (error) {
+    cloudBusy = false;
+    cloudError = error.message;
+    if (/session|sign in again|revoked|inactive|not authorised/i.test(error.message)) { cloudSession = null; cloudCrmReady = false; }
+    else if (cloudCrmReady) { cloudSyncError = error.message; cloudSyncState = 'error'; updateCloudIndicator(); }
+    renderCloudGate();
+  }
+}
+window.addEventListener('online', () => { if (cloudCrmReady) syncCloudOutbox(); else if (cloudSession) reloadCloudWorkspace({ rerender: false }); });
+window.addEventListener('focus', () => { if (cloudSession && cloudCrmReady && navigator.onLine && !state.outbox.length) reloadCloudWorkspace({ rerender: false }); });
+setInterval(() => { if (cloudSession && cloudCrmReady && navigator.onLine && !state.outbox.length && !document.getElementById('modal-wrap')) reloadCloudWorkspace({ rerender: false }); }, 45000);
 function render() {
+  if (renderCloudGate()) return;
   if (publicReportOnly) {
     if (publicReportError) { app.innerHTML = '<main class="content"><div class="panel"><h1>Report unavailable</h1><p class="muted">This report is not published on this device. The local prototype does not provide a public cloud report endpoint.</p></div></main>'; return; }
     app.innerHTML = `<main class="content"><div class="report-preview">${sharedReport()}</div></main>`;
     return;
   }
-  const views = { home: homeViewV07, eventday: eventDayV07, connectors: connectorView, about: aboutView, activities: activitiesView, newactivity: activityFormV07, newlead: newLeadViewV07, leads: leadsView, lead: leadEditViewV07, inbox: inboxViewV07, followups: () => followupsView(), event: eventDetailView, eventfollowups: () => followupsView(activeActivityId), progress: progressView, reports: reportsView };
+  const views = { home: homeViewV07, eventday: eventDayV07, connectors: cloudConnectorView, about: aboutView, activities: activitiesView, newactivity: activityFormV07, newlead: newLeadViewV07, leads: leadsView, lead: leadEditViewV07, inbox: inboxViewV07, followups: () => followupsView(), event: eventDetailView, eventfollowups: () => followupsView(activeActivityId), progress: progressView, reports: reportsView };
   const titles = { home: 'Event Day', eventday: 'Event Day', connectors: 'Setup / Admin', about: 'About', activities: 'Activities', newactivity: 'Activity', newlead: 'Add a Lead', leads: 'Leads', lead: 'Update Lead', inbox: 'Action Inbox', followups: 'Follow-ups', event: activityById(activeActivityId)?.name || 'Event detail', eventfollowups: 'Event Follow-ups', progress: 'Results', reports: 'Detailed reports' };
   const view = views[state.route] || eventDayView;
   app.innerHTML = shell(view(), titles[state.route] || 'Event Day').replaceAll('Home status', 'Residential status');
@@ -983,13 +1185,26 @@ function inboxViewV07() {
   return heading('Action Inbox', leads.length ? leads.length + ' Leads need an update.' : 'You’re up to date.', '<span class="badge pink">' + leads.length + ' to update</span>') + (isConnectorAdmin() ? '<div class="filter-row"><button class="filter-chip ' + (leadScope === 'my' ? 'active' : '') + '" data-lead-scope="my">My Inbox</button><button class="filter-chip ' + (leadScope === 'team' ? 'active' : '') + '" data-lead-scope="team">Team Inbox</button></div>' : '') + '<div class="lead-list">' + (rows || '<div class="empty-state"><strong>Inbox zero</strong>You are up to date.</div>') + '</div>';
 }
 async function boot() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register(new URL(`sw.js?version=${encodeURIComponent(APP.version)}`, document.baseURI)).catch(error => console.warn('Offline cache could not be installed.', error));
+  if (!demoMode) {
+    try {
+      cloudSession = await ConnectorTrackerCloud.restoreSession();
+      if (cloudSession) {
+        cloudConnectorId = cloudSession.connectors[0]?.id || '';
+        if (cloudConnectorId) { await reloadCloudWorkspace({ initial: true }); return; }
+        cloudSession = null;
+      }
+    } catch (error) { cloudError = error.message; }
+    renderCloudLogin();
+    return;
+  }
   state = await loadState();
   if (state.route === 'lead' || state.route === 'event' || state.route === 'eventfollowups') state.route = 'eventday';
   state.activities ||= [];
   state.twentyKRecords ||= [];
   state.leads ||= [];
   state.connectors ||= []; state.users ||= []; state.outbox ||= []; state.history ||= []; state.stats ||= []; state.commissionRules ||= [];
-  for (const item of state.connectors) { if (item.id === 'dynamite') { item.primaryColor ||= '#c8102e'; item.accentColor ||= '#201b2c'; } }
+  for (const item of state.connectors) { if (item.id === 'demo-connector') { item.primaryColor ||= '#c8102e'; item.accentColor ||= '#201b2c'; } }
   for (const record of state.twentyKRecords) { record.version ||= 1; record.leadId ||= state.leads.find(lead => lead.origin20KId === record.id)?.id || null; }
   state.leads.forEach(lead => {
     if (lead.channel === 'In-person / 20K') lead.channel = '20K Event'; else if (!lead.channel) lead.channel = 'Unknown';
@@ -1021,9 +1236,72 @@ async function boot() {
     if (item) { state.selectedConnectorId = item.id; state.period = 'This month'; state.route = 'reports'; state.reportTab = 'shared'; }
     else publicReportError = true;
   }
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register(new URL(`sw.js?version=${encodeURIComponent(APP.version)}`, document.baseURI)).catch(error => console.warn('Offline cache could not be installed.', error));
   history.replaceState({ route: state.route, leadFilter, activeLeadId, activeActivityId }, '', location.href);
   await persist();
   render();
 }
+
+app.addEventListener('submit', async event => {
+  const form = event.target;
+  if (form.id === 'tracker-login-form') {
+    event.preventDefault();
+    if (!window.ConnectorTrackerCloud?.configured || cloudBusy) return;
+    const formData = new FormData(form);
+    cloudPartnerIdDraft = String(formData.get('partnerId') || '').trim();
+    let password = String(formData.get('password') || '');
+    cloudBusy = true; cloudError = ''; renderCloudLogin();
+    try {
+      cloudSession = await ConnectorTrackerCloud.login(cloudPartnerIdDraft, password);
+      cloudConnectorId = cloudSession.connectors[0]?.id || '';
+      form.reset(); password = '';
+      if (cloudConnectorId) await reloadCloudWorkspace({ initial: true }); else { cloudBusy = false; renderCloudWorkspace(); }
+    } catch (error) { cloudSession = null; cloudCrmReady = false; cloudError = error.message; cloudBusy = false; password = ''; renderCloudLogin(); }
+    return;
+  }
+  if (form.id === 'cloud-connector-access-form') {
+    event.preventDefault();
+    if (!cloudSession || cloudBusy || !isConnectorAdmin()) return;
+    const data = new FormData(form);
+    cloudBusy = true; cloudError = ''; updateCloudIndicator();
+    try {
+      await ConnectorTrackerCloud.grantConnectorAccess(state.selectedConnectorId, String(data.get('partnerId') || '').trim(), String(data.get('role') || 'Editor'));
+      await reloadCloudWorkspace({ rerender: false });
+      showToast('Connector access updated');
+    } catch (error) { cloudSyncError = error.message; showToast('Access was not changed'); }
+    finally { cloudBusy = false; render(); }
+    return;
+  }
+  if (form.id !== 'cloud-test-form' || !cloudSession || cloudBusy) return;
+  event.preventDefault();
+  cloudMessage = String(new FormData(form).get('message') || '');
+  const expectedVersion = Number(cloudTestRecord?.version || 0);
+  cloudBusy = true; cloudError = ''; renderCloudWorkspace();
+  try {
+    const saved = await ConnectorTrackerCloud.saveTestRecord(cloudConnectorId, cloudMessage, expectedVersion);
+    const reread = await ConnectorTrackerCloud.getTestRecord(cloudConnectorId);
+    if (!saved.acknowledged || !reread || reread.version !== saved.record.version) throw new Error('Cloud acknowledged the save, but the follow-up read did not match.');
+    cloudTestRecord = reread; cloudMessage = reread.message; cloudError = '';
+  } catch (error) {
+    cloudError = error.message;
+    if (/session|sign in again|revoked|inactive|not authorised/i.test(error.message)) { cloudSession = null; cloudTestRecord = null; }
+  }
+  cloudBusy = false; renderCloudGate();
+});
+
+app.addEventListener('change', event => {
+  if (event.target.id !== 'cloud-connector-select' || cloudBusy) return;
+  cloudConnectorId = event.target.value;
+  cloudTestRecord = null; cloudMessage = '';
+  reloadCloudTestRecord();
+});
+
+app.addEventListener('click', async event => {
+  if (event.target.closest('[data-cloud-action="reload"]') && cloudSession && !cloudBusy) { cloudBusy = true; cloudError = ''; renderCloudGate(); await reloadCloudWorkspace({ rerender: true }); return; }
+  if (!event.target.closest('[data-cloud-action="logout"]') || cloudBusy) return;
+  cloudBusy = true; cloudError = ''; renderCloudWorkspace();
+  try { await ConnectorTrackerCloud.logout(); } catch (_) {}
+  cloudSession = null; cloudCrmReady = false; cloudBusy = false; cloudPartnerIdDraft = ''; cloudSyncError = ''; cloudSyncState = 'idle'; cloudVersions.clear();
+  renderCloudLogin();
+});
+
 boot();
