@@ -553,3 +553,15 @@
   .connector-switcher { max-width:calc(100vw - 150px); }
   .crumb-divider,.crumb-page-title { display:none; }
 }
+
+/* v0.11.3 - Connector-specific Partner access */
+#partner-access-section { scroll-margin-top:78px; }
+.grant-target-field { display:grid; gap:7px; margin:16px 0; max-width:100%; }
+.grant-target-field select { width:100%; min-height:41px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); padding:8px 10px; }
+.grant-target-field .helper { margin-top:0; }
+.connector-list [data-grant-connector] { white-space:nowrap; }
+@media(max-width:760px) {
+  .connector-list > .connector-card { flex-wrap:wrap; gap:8px; }
+  .connector-list > .connector-card .connector-meta { flex:1 1 150px; }
+  #partner-access-section { scroll-margin-top:64px; }
+}

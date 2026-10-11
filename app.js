@@ -69,6 +69,10 @@ let cloudSyncPromise = null;
 let cloudRefreshPromise = null;
 const cloudVersions = new Map();
 let cloudPartnerIdDraft = '';
+let grantAccessConnectorId = '';
+let grantAccessPartnerId = '';
+let grantAccessRole = 'Editor';
+let grantAccessError = '';
 const app = document.getElementById('app');
 const toastNode = document.getElementById('toast');
 app.addEventListener('submit', event => {
@@ -461,12 +465,37 @@ function connectorView() {
     return { item, leads, leadsCount: leads.length, booked: leads.filter(lead => ['Booked','Sat'].includes(lead.appointment)).length, sat: leads.filter(lead => lead.appointment === 'Sat').length, customers: leads.filter(outcomeIsCustomer).length, partners: leads.filter(lead => lead.becamePartner).length, income: leads.reduce((sum, lead) => sum + (resultFor(lead).connectorCommission || 0), 0) };
   });
   const total = portfolio.reduce((sum, row) => ({ leads: sum.leads + row.leadsCount, booked: sum.booked + row.booked, sat: sum.sat + row.sat, customers: sum.customers + row.customers, partners: sum.partners + row.partners, income: sum.income + row.income }), { leads: 0, booked: 0, sat: 0, customers: 0, partners: 0, income: 0 });
-  return `${heading('Your Connectors', 'Only Connectors with access granted to you are shown.', admin ? '<button class="btn btn-primary" data-action="new-connector">＋ Add New Connector</button>' : '')}${allowed.length > 1 ? `<div class="panel" style="margin-bottom:14px"><div class="panel-head"><div><h2>Portfolio snapshot</h2><p>${allowed.length} active Connectors · ${state.period.toLowerCase()}</p></div></div><div class="metric-grid">${metricCard('Active Connectors',allowed.length,'var(--purple-2)')}${metricCard('Leads',total.leads,'var(--blue)')}${metricCard('Appointments',total.booked,'var(--purple-2)')}${metricCard('Sat',total.sat,'var(--blue)')}${metricCard('Customers',total.customers,'var(--pink)')}${metricCard('Connector income',fmtMoney(total.income),'var(--green)')}</div></div>` : ''}<div class="connector-list">${portfolio.map(row => `<article class="connector-card"><div class="connector-logo">${logoMarkup(row.item)}</div><div class="connector-meta"><strong>${escapeHtml(row.item.name)}</strong><span>${row.item.code} · ${row.leadsCount} Leads · ${row.customers} customers · ${fmtMoney(row.income)} test income</span></div><span class="badge green">${row.item.id === state.selectedConnectorId ? 'Current' : 'Active'}</span>${admin ? `<button class="btn btn-secondary btn-sm" data-edit-connector="${row.item.id}">Edit</button>` : ''}<button class="btn btn-soft btn-sm" data-select-connector="${row.item.id}" aria-label="Open ${escapeHtml(row.item.name)}">Open workspace →</button></article>`).join('')}</div>${admin ? `<div class="panel" style="margin-top:17px"><div class="panel-head"><div><h2>Partner access</h2><p>Cloud access permissions checked on every server request</p></div></div><div class="table-wrap"><table><thead><tr><th>Connector</th><th>Partner</th><th>Access role</th><th>Access</th></tr></thead><tbody>${state.access.filter(access => allowed.some(item => item.id === access.connectorId)).map(access => `<tr><td>${escapeHtml(connector(access.connectorId)?.name || '')}</td><td>${userName(access.userId)}</td><td>${access.role}</td><td><span class="badge green">Granted</span></td></tr>`).join('')}</tbody></table></div></div>` : ''}`;
+  return `${heading('Your Connectors', 'Only Connectors with access granted to you are shown.', admin ? '<button class="btn btn-primary" data-action="new-connector">＋ Add New Connector</button>' : '')}${allowed.length > 1 ? `<div class="panel" style="margin-bottom:14px"><div class="panel-head"><div><h2>Portfolio snapshot</h2><p>${allowed.length} active Connectors · ${state.period.toLowerCase()}</p></div></div><div class="metric-grid">${metricCard('Active Connectors',allowed.length,'var(--purple-2)')}${metricCard('Leads',total.leads,'var(--blue)')}${metricCard('Appointments',total.booked,'var(--purple-2)')}${metricCard('Sat',total.sat,'var(--blue)')}${metricCard('Customers',total.customers,'var(--pink)')}${metricCard('Connector income',fmtMoney(total.income),'var(--green)')}</div></div>` : ''}<div class="connector-list">${portfolio.map(row => `<article class="connector-card"><div class="connector-logo">${logoMarkup(row.item)}</div><div class="connector-meta"><strong>${escapeHtml(row.item.name)}</strong><span>${row.item.code} · ${row.leadsCount} Leads · ${row.customers} customers · ${fmtMoney(row.income)} test income</span></div><span class="badge green">${row.item.id === state.selectedConnectorId ? 'Current' : 'Active'}</span>${cloudCrmReady && isConnectorAdmin(row.item.id) ? `<button class="btn btn-secondary btn-sm" data-grant-connector="${row.item.id}" aria-label="Add a Partner to ${escapeHtml(row.item.name)}">＋ Partner</button>` : ''}${admin ? `<button class="btn btn-secondary btn-sm" data-edit-connector="${row.item.id}">Edit</button>` : ''}<button class="btn btn-soft btn-sm" data-select-connector="${row.item.id}" aria-label="Open ${escapeHtml(row.item.name)}">Open workspace →</button></article>`).join('')}</div>${admin ? `<div class="panel" style="margin-top:17px"><div class="panel-head"><div><h2>Partner access</h2><p>Cloud access permissions checked on every server request</p></div></div><div class="table-wrap"><table><thead><tr><th>Connector</th><th>Partner</th><th>Access role</th><th>Access</th></tr></thead><tbody>${state.access.filter(access => allowed.some(item => item.id === access.connectorId)).map(access => `<tr><td>${escapeHtml(connector(access.connectorId)?.name || '')}</td><td>${userName(access.userId)}</td><td>${access.role}</td><td><span class="badge green">Granted</span></td></tr>`).join('')}</tbody></table></div></div>` : ''}`;
 }
 function cloudConnectorView() {
   const html = connectorView();
-  if (!cloudCrmReady || !isConnectorAdmin()) return html;
-  return `${html}<section class="panel"><h2>Grant Connector access</h2><p>Use an existing Partner ID from the shared Partner directory. CAT checks this Connector grant on every cloud request.</p><form id="cloud-connector-access-form"><div class="form-grid"><label class="field">Partner ID<input name="partnerId" autocomplete="off" maxlength="60" required placeholder="Existing Companion Partner ID"></label><label class="field">Access role<select name="role"><option value="Editor">Partner</option><option value="Admin">Connector Admin</option></select></label></div><div class="modal-actions"><button class="btn btn-primary" type="submit">Grant access</button></div></form></section>`;
+  const manageable = state.connectors.filter(item => isConnectorAdmin(item.id));
+  if (!cloudCrmReady || !manageable.length) return html;
+  const chosen = manageable.find(item => item.id === grantAccessConnectorId)
+    || manageable.find(item => item.id === state.selectedConnectorId) || manageable[0];
+  const options = manageable.map(item => `<option value="${escapeHtml(item.id)}" ${chosen.id === item.id ? 'selected' : ''}>${escapeHtml(item.name)}</option>`).join('');
+  return `${html}<section class="panel" id="partner-access-section">
+    <h2>Add a Partner to a Connector</h2>
+    <p>Choose the Connector and enter the Partner's existing UW Partner ID. A Partner can have access to several Connectors using the same Team Triumph sign-in.</p>
+    <form id="cloud-connector-access-form">
+      <label class="field grant-target-field">Connector<select id="grant-connector-select" name="connectorId" required>${options}</select><span class="helper">Which organisation will this Partner be working with?</span></label>
+      <div class="form-grid">
+        <label class="field">Partner ID<input id="grant-partner-id" name="partnerId" autocomplete="off" maxlength="60" required placeholder="Existing UW Partner ID" value="${escapeHtml(grantAccessPartnerId)}"></label>
+        <label class="field">Access role<select name="role"><option value="Editor" ${grantAccessRole === 'Editor' ? 'selected' : ''}>Partner</option><option value="Admin" ${grantAccessRole === 'Admin' ? 'selected' : ''}>Connector Admin</option></select></label>
+      </div>
+      ${grantAccessError ? `<p class="cloud-message cloud-message-error" role="alert">${escapeHtml(grantAccessError)}</p>` : ''}
+      <div class="modal-actions"><button class="btn btn-primary" type="submit" data-grant-submit>Grant access to ${escapeHtml(chosen.name)}</button></div>
+    </form>
+  </section>`;
+}
+function setGrantAccessTarget(connectorId) {
+  const item = state.connectors.find(entry => entry.id === connectorId && isConnectorAdmin(entry.id));
+  if (!item) return;
+  grantAccessConnectorId = connectorId;
+  const picker = document.getElementById('grant-connector-select');
+  if (picker) picker.value = connectorId;
+  const button = document.querySelector('#cloud-connector-access-form [data-grant-submit]');
+  if (button) button.textContent = `Grant access to ${item.name}`;
 }
 function eventDetailView() {
   const activity = activityById(activeActivityId); if (!activity) return `${heading('Event not found')}<button class="btn btn-secondary" data-route="activities">Back to activities</button>`;
@@ -645,6 +674,13 @@ document.addEventListener('click', async event => {
   if (target.dataset.action === 'dismiss-inbox') { state.actionPromptDismissed = true; render(); return; }
   if (target.dataset.action === 'event-fast-lead') { leadReturnRoute = 'eventday'; origin20KId = ''; forceUnlinkedLead = false; navigate('newlead'); return; }
   if (target.dataset.action === 'close-modal') return closeModal();
+  if (target.dataset.grantConnector) {
+    if (!cloudCrmReady || !isConnectorAdmin(target.dataset.grantConnector)) return;
+    setGrantAccessTarget(target.dataset.grantConnector);
+    document.getElementById('partner-access-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('grant-partner-id')?.focus({ preventScroll: true });
+    return;
+  }
   if (target.dataset.action === 'new-connector') return openConnectorForm();
   if (target.dataset.editConnector) return openConnectorForm(connector(target.dataset.editConnector));
   if (target.dataset.action === 'new-rule') return openRuleForm();
@@ -660,6 +696,7 @@ document.addEventListener('click', async event => {
     const selectedId = target.dataset.selectConnector;
     if (!connector(selectedId) || !hasAccess(selectedId)) { showToast('Connector access unavailable'); return; }
     state.selectedConnectorId = selectedId;
+    grantAccessConnectorId = selectedId;
     cloudConnectorId = selectedId;
     activeLeadId = ''; activeActivityId = ''; origin20KId = ''; draftServices = null; leadDraftSnapshot = null;
     leadFilter = 'all'; leadScope = 'team'; eventTab = 'my'; state.search = '';
@@ -690,6 +727,8 @@ document.addEventListener('click', async event => {
 
 app.addEventListener('change', event => {
   const target = event.target;
+  if (target.matches('#grant-connector-select')) { setGrantAccessTarget(target.value); grantAccessError = ''; document.querySelector('#cloud-connector-access-form [role="alert"]')?.remove(); return; }
+  if (target.matches('#cloud-connector-access-form [name="role"]')) { grantAccessRole = target.value; return; }
   if (target.matches('[data-period]')) { setPeriod(target.value); return; }
   if (target.matches('[data-funnel-profile]')) { state.funnelProfile = target.value; render(); return; }
   if (target.matches('[data-funnel-connector]')) { state.funnelConnector = target.value; state.funnelEvent = 'all'; render(); return; }
@@ -1281,15 +1320,28 @@ app.addEventListener('submit', async event => {
   }
   if (form.id === 'cloud-connector-access-form') {
     event.preventDefault();
-    if (!cloudSession || cloudBusy || !isConnectorAdmin()) return;
+    if (!cloudSession || cloudBusy || !cloudCrmReady) return;
     const data = new FormData(form);
+    const connectorId = String(data.get('connectorId') || '').trim();
+    const partnerId = String(data.get('partnerId') || '').trim();
+    const role = String(data.get('role') || 'Editor');
+    if (!connector(connectorId) || !isConnectorAdmin(connectorId)) { showToast('You cannot manage Partner access for this Connector'); return; }
+    grantAccessConnectorId = connectorId;
+    grantAccessPartnerId = partnerId;
+    grantAccessRole = role;
+    grantAccessError = '';
+    const connectorName = connector(connectorId).name;
     cloudBusy = true; cloudError = ''; updateCloudIndicator();
     try {
-      await ConnectorTrackerCloud.grantConnectorAccess(state.selectedConnectorId, String(data.get('partnerId') || '').trim(), String(data.get('role') || 'Editor'));
+      await ConnectorTrackerCloud.grantConnectorAccess(connectorId, partnerId, role);
       await reloadCloudWorkspace({ rerender: false });
-      showToast('Connector access updated');
-    } catch (error) { cloudSyncError = error.message; showToast('Access was not changed'); }
-    finally { cloudBusy = false; render(); }
+      grantAccessPartnerId = '';
+      grantAccessRole = 'Editor';
+      showToast(`Access granted to ${connectorName}`);
+    } catch (error) {
+      grantAccessError = error.message || 'Could not update access.';
+      showToast('Partner access was not changed');
+    } finally { cloudBusy = false; render(); }
     return;
   }
   if (form.id !== 'cloud-test-form' || !cloudSession || cloudBusy) return;
