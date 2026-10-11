@@ -525,3 +525,31 @@
   .followup-choice-row { gap: 3px; }
   .followup-choice-row .filter-chip { font-size: 10px; }
 }
+
+/* v0.11.2 - Connector switching and Team Triumph login clarity */
+.topbar .crumbs { display:flex; align-items:center; gap:8px; min-width:0; }
+.connector-switcher { display:inline-flex; align-items:center; gap:8px; max-width:min(320px, 48vw); min-width:0; min-height:36px; background:#fff; border:1px solid var(--line); border-radius:9px; padding:4px 10px 4px 5px; color:var(--ink); font-size:12px; font-weight:800; text-align:left; }
+.connector-switcher:hover { border-color:#b8a5d0; background:#fbf8ff; }
+.connector-switcher .connector-mini-logo { flex:none; width:25px; height:25px; }
+.connector-switcher-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.connector-switcher-caret { margin-left:2px; font-size:14px; color:var(--purple); flex:none; }
+.crumb-divider { flex:none; color:var(--muted); }
+.crumb-page-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.connector-switch-list { gap:9px; }
+.connector-choice { width:100%; text-align:left; }
+.connector-choice.is-current { background:#f7f4fb; border-color:#c9b6e6; }
+.connector-choice-open { font-size:11px; font-weight:800; color:var(--purple-2); white-space:nowrap; }
+.cloud-password-hint { margin:2px 0 17px; padding:11px 13px; border:1px solid #e3dcec; border-radius:9px; background:#f9f7fc; font-size:12px; line-height:1.55; }
+.profile-identity { display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+.profile-identity .avatar { flex:none; width:42px; height:42px; }
+.profile-identity strong,.profile-identity small { display:block; }
+.profile-identity small { margin-top:4px; color:var(--muted); font-size:11px; }
+@media(max-width:760px) {
+  .connector-switcher { max-width:min(45vw, 210px); gap:5px; min-height:34px; padding:3px 6px 3px 3px; font-size:11px; }
+  .crumb-page-title { font-size:11px; }
+  .topbar .crumbs { gap:5px; }
+}
+@media(max-width:420px) {
+  .connector-switcher { max-width:calc(100vw - 150px); }
+  .crumb-divider,.crumb-page-title { display:none; }
+}
