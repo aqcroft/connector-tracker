@@ -1,21 +1,14 @@
 window.APP_META = {
-  version: '0.11.1',
+  version: '0.11.2',
   released: '2026-10-11',
   summary: [
-    'Online pilot now requires Partner sign-in; cached v0.9.0 pages are refreshed from the network without deleting locally saved records',
-    'Uses a neutral UW Connector brand icon instead of a basketball for app identity',
-    'Connector Activity Tracker (CAT) now has cloud workspace sync foundations for separate Connector organisations, shared Events and owner-protected Lead records',
-    'Admins can create and brand Connectors, grant Partner access, and see each authorised Connector in the existing portfolio screens',
-    'Hardened Phase 1 Partner allowlisting, sign-in throttling and test-record ownership checks; demo identities are now clearly synthetic',
-    'Connected the existing Event, 20K, Lead, appointment, follow-up and reporting workflows to the versioned cloud sync queue; deployment and browser verification remain pending',
-    'Event Day now has one Connector-branded Event banner, matched Add 20K / Add Lead actions and an expandable Event-wide progress strip',
-    'Named 20Ks convert directly into linked Lead profiles; standalone Add Lead remains unchanged',
-    'Follow-up presets fit one compact row, and SIM quantities use direct 1–4 selection with clear qualifying-service rules',
-    'Reports use larger mobile funnel stages, jump links and named operational leakage lists',
-    'Connector income now calculates as 50% of Partner earnings; new calculations use CRM-BANDS-2',
-    'Home and Event navigation icons are refreshed; internal Connector codes are hidden from normal workflow headings'
+    'Added a prominent Connector switcher to the main header on desktop and mobile; Setup/Admin now uses an explicit Open workspace button',
+    'Clarified that the UW Partner ID uses a separate Team Triumph tools password, not the UW Partner Portal password',
+    'Kept authenticated Partner identity separate from the old device-only demo Partner switcher',
+    'Refreshed the UW-style CAT icon cache across the browser tab and PWA without touching Connector-specific logos or saved data'
   ],
   history: [
+    { version: '0.11.2', date: '2026-10-11', summary: 'Added header Connector switching, unambiguous Team Triumph login guidance, authenticated profile separation and icon-cache refresh.' },
     { version: '0.11.1', date: '2026-10-11', summary: 'Fixed stale PWA navigation, gated the online pilot, refreshed shared Connector branding, and preserved legacy device-only sample data.' },
     { version: '0.11.0', date: '2026-10-11', summary: 'Connected existing CRM workflows to a queued, version-checked cloud record API; added Connector profiles and Partner grants, cloud refresh, and server-side private Lead scoping. Deployment and live cloud verification remain pending.' },
     { version: '0.10.2', date: '2026-10-11', summary: 'Named the PWA Connector Activity Tracker (CAT) and documented the staged multi-Connector cloud plan; preserved repository identity, record IDs, local data and authentication.' },

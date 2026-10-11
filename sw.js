@@ -2,7 +2,7 @@
 const BASE = new URL('./', self.registration.scope);
 const SCOPE_KEY = new URL(self.registration.scope).pathname.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root';
 const VERSION = new URL(self.location.href).searchParams.get('version') || 'dev';
-const CACHE_SCHEMA = 7;
+const CACHE_SCHEMA = 8;
 const CACHE_PREFIX = 'connector-tracker-v';
 const CACHE = `${CACHE_PREFIX}${VERSION}-c${CACHE_SCHEMA}-${SCOPE_KEY}`;
 const INDEX = new URL('index.html', BASE).pathname;
