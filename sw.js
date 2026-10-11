@@ -2,7 +2,7 @@
 const BASE = new URL('./', self.registration.scope);
 const SCOPE_KEY = new URL(self.registration.scope).pathname.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root';
 const VERSION = new URL(self.location.href).searchParams.get('version') || 'dev';
-const CACHE_SCHEMA = 9;
+const CACHE_SCHEMA = 10;
 const CACHE_PREFIX = 'connector-tracker-v';
 const CACHE = `${CACHE_PREFIX}${VERSION}-c${CACHE_SCHEMA}-${SCOPE_KEY}`;
 const INDEX = new URL('index.html', BASE).pathname;
@@ -25,7 +25,7 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
 
   // Network-first for page loads. A previous cache-first navigation trapped
-  existing users in v0.9.0 even after GitHub Pages had deployed v0.11.0.
+  // existing users on stale releases after GitHub Pages had deployed updates.
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request, { cache: 'no-store' }).then(response => {
       if (response.ok) {

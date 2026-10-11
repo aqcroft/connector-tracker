@@ -22,7 +22,7 @@ The authenticated PWA now routes through the existing Event, Activity, 20K, Lead
 
 ## Versioning
 
-The current application version and changelog live in `app-meta.js`. Every code, UI or behaviour change must update this source of truth, About, and dependent service-worker/cache versioning. Version 0.11.0 adds the CRM cloud-sync foundations and multi-Connector administration. The PWA installation name is Connector Activity Tracker (short name CAT); the repository name and stable record IDs are unchanged.
+The current application version and changelog live in `app-meta.js`. Every code, UI or behaviour change must update this source of truth, About, and dependent service-worker/cache versioning. Version 0.12.0 adds tappable Results records, individual one-tap 20Ks, quick appointment dates, mobile refinements and the Connector-led app icon. The PWA installation name is Connector Activity Tracker (short name CAT); the repository name and stable record IDs are unchanged.
 
 New commission calculations use the central CRM service-count rules and the £0/£50/£100/£250/£300 band lookup requested for this workflow. Existing saved commission snapshots remain as historical values. Public report links are not published in this local build; the shared report view and device share-sheet summary contain aggregate metrics only.
 
