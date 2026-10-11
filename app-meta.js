@@ -6,7 +6,7 @@ window.APP_META = {
     'All 20K add shortcuts now share the name-first form, preventing unnamed counters and accidental funnel inflation',
     'Easy QR and supporter-link sharing from Event Day and Home for the active Connector',
     'Results now opens five tappable stages with filter-aware record drill-downs and separate 20K-to-Lead conversion rates',
-    'Event Day +20K records an individual unnamed 20K in one tap; quick appointment dates save in place and keep the Lead open',
+    'Quick appointment dates save in place and keep the Lead open',
     'Refined the mobile Home, Results and touch controls, replaced generic basketball symbols with Event calendar iconography, and balanced the CAT app icon around the Connector speech bubble',
     'Restored a clearly labelled local sample-data entry point while authenticated cloud setup is pending',
     'Partner access now explicitly selects a Connector, with a clear target on the Grant access button',
