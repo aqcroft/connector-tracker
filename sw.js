@@ -6,7 +6,7 @@ const CACHE_SCHEMA = 16;
 const CACHE_PREFIX = 'connector-tracker-v';
 const CACHE = `${CACHE_PREFIX}${VERSION}-c${CACHE_SCHEMA}-${SCOPE_KEY}`;
 const INDEX = new URL('index.html', BASE).pathname;
-const SHELL = ['index.html', 'styles.css', 'ux-v06.css', 'app-meta.js', 'cloud-config.js', 'cloud-client.js', 'connector-qr.js', 'app.js', 'manifest.webmanifest', 'icon.svg'].map(file => new URL(file, BASE).pathname);
+const SHELL = ['index.html', 'styles.css', 'ux-v06.css', 'mobile-first.css', 'app-meta.js', 'cloud-config.js', 'cloud-client.js', 'connector-qr.js', 'app.js', 'manifest.webmanifest', 'icon.svg'].map(file => new URL(file, BASE).pathname);
 
 self.addEventListener('install', event => event.waitUntil(
   caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())

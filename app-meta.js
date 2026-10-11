@@ -1,7 +1,9 @@
 window.APP_META = {
-  version: '0.12.6',
+  version: '0.13.0',
   released: '2026-10-11',
   summary: [
+    'Redesigned the mobile workspace with more readable screens, larger touch targets, clearer Event Day participant rows, and safer keyboard and navigation spacing',
+    'Improved mobile Lead, Results, form and dialog layouts while preserving CAT records, funnel meanings, permissions and cloud workflows',
     'Add Lead now opens the official UW form in an in-app modal when UW permits embedding, with an Open in browser fallback',
     'Confirming the official submission explicitly is still required to count a linked CAT Lead',
     'After submitting the UW form, return to CAT and tap Connector Lead already added to track the linked Lead',
@@ -23,6 +25,7 @@ window.APP_META = {
     'Refreshed the UW-style CAT icon cache across the browser tab and PWA without touching Connector-specific logos or saved data'
   ],
   history: [
+    { version: '0.13.0', date: '2026-10-11', summary: 'Introduced a mobile-first visual system with readable typography, thumb-friendly controls, clearer Event Day and Lead rows, improved Results hierarchy, and keyboard/safe-area support.' },
     { version: '0.12.6', date: '2026-10-11', summary: 'Added optional embedded official UW form modal with external-browser fallback and manual Lead confirmation.' },
     { version: '0.12.5', date: '2026-10-11', summary: 'Open official UW Connector Lead form outside CAT without leaving the PWA; preserve 20K until separate submission is confirmed.' },
     { version: '0.12.4', date: '2026-10-11', summary: 'Added a three-option mobile 20K next step with an immediate prefilled Lead form, and kept the existing Lead-submitted shortcut.' },
