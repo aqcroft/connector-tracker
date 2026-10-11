@@ -8,14 +8,20 @@
     if (!endpoint) throw new Error('Cloud sign-in is not configured yet. Ask the Tracker administrator to finish the cloud setup.');
     let response;
     try {
-      response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(body),
-        redirect: 'follow',
-        cache: 'no-store'
-      });
-    } catch (_) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      try {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(body),
+          redirect: 'follow',
+          cache: 'no-store',
+          signal: controller.signal
+        });
+      } finally { clearTimeout(timeout); }
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('CAT Cloud took too long to respond. Check your connection and try again.');
       throw new Error('Could not reach CAT Cloud. Check your connection and try again.');
     }
     const text = await response.text();
@@ -60,7 +66,9 @@
         const data = await authenticated('getSession');
         return { profile: data.profile, connectors: data.connectors, expiresAt: data.expires_at };
       } catch (error) {
-        clearSession();
+        // Network timeouts are not an authentication failure. Keep the token
+        // so the existing Partner can retry. Authenticated() already removes
+        // expired and revoked credentials.
         throw error;
       }
     },

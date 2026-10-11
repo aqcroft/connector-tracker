@@ -1,7 +1,9 @@
 window.APP_META = {
-  version: '0.12.2',
+  version: '0.12.3',
   released: '2026-10-11',
   summary: [
+    'CAT displays a visible loading screen immediately whilst restoring existing sessions, preventing blank startups',
+    'Cloud requests have a 30-second deadline and transient network failures no longer erase remembered session tokens',
     'Critical Event Day 20K flow now requires a name before a record is created, and offers optional Lead confirmation after saving',
     'All 20K add shortcuts now share the name-first form, preventing unnamed counters and accidental funnel inflation',
     'Easy QR and supporter-link sharing from Event Day and Home for the active Connector',
@@ -17,6 +19,7 @@ window.APP_META = {
     'Refreshed the UW-style CAT icon cache across the browser tab and PWA without touching Connector-specific logos or saved data'
   ],
   history: [
+    { version: '0.12.3', date: '2026-10-11', summary: 'Added resilient visible startup and bounded cloud access requests with safer retry behaviour.' },
     { version: '0.12.2', date: '2026-10-11', summary: 'Fixed the first funnel stage: a 20K is saved only after a name is entered; a Connector Lead is an optional subsequent step.' },
     { version: '0.12.1', date: '2026-10-11', summary: 'Added scan-ready official Connector QR and link sharing for Leicester Dynamite and Miss England.' },
     { version: '0.12.0', date: '2026-10-11', summary: 'Added five tappable, filter-aware Results stages and 20K conversion reporting; made Event Day 20Ks one-tap individual records; added quick appointment dates that keep the Lead open; refreshed mobile surfaces and the Connector-led app icon.' },
