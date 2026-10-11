@@ -1,7 +1,8 @@
 window.APP_META = {
-  version: '0.12.0',
+  version: '0.12.1',
   released: '2026-10-11',
   summary: [
+    'Easy QR and supporter-link sharing from Event Day and Home for the active Connector',
     'Results now opens five tappable stages with filter-aware record drill-downs and separate 20K-to-Lead conversion rates',
     'Event Day +20K records an individual unnamed 20K in one tap; quick appointment dates save in place and keep the Lead open',
     'Refined the mobile Home, Results and touch controls, replaced generic basketball symbols with Event calendar iconography, and balanced the CAT app icon around the Connector speech bubble',
@@ -14,6 +15,7 @@ window.APP_META = {
     'Refreshed the UW-style CAT icon cache across the browser tab and PWA without touching Connector-specific logos or saved data'
   ],
   history: [
+    { version: '0.12.1', date: '2026-10-11', summary: 'Added scan-ready official Connector QR and link sharing for Leicester Dynamite and Miss England.' },
     { version: '0.12.0', date: '2026-10-11', summary: 'Added five tappable, filter-aware Results stages and 20K conversion reporting; made Event Day 20Ks one-tap individual records; added quick appointment dates that keep the Lead open; refreshed mobile surfaces and the Connector-led app icon.' },
     { version: '0.11.3', date: '2026-10-11', summary: 'Made Partner-to-Connector access assignment explicit with a Connector selector and per-Connector shortcut.' },
     { version: '0.11.2', date: '2026-10-11', summary: 'Added header Connector switching, unambiguous Team Triumph login guidance, authenticated profile separation and icon-cache refresh.' },

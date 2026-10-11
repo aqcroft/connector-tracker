@@ -1210,6 +1210,8 @@ function render() {
   const titles = { home: 'Event Day', eventday: 'Event Day', connectors: 'Setup / Admin', about: 'About', activities: 'Activities', newactivity: 'Activity', newlead: 'Add a Lead', leads: 'Leads', lead: 'Update Lead', inbox: 'Action Inbox', followups: 'Follow-ups', event: activityById(activeActivityId)?.name || 'Event detail', eventfollowups: 'Event Follow-ups', progress: 'Results', reports: 'Detailed reports' };
   const view = views[state.route] || eventDayView;
   app.innerHTML = shell(view(), titles[state.route] || 'Event Day').replaceAll('Home status', 'Residential status');
+  if (state.route === 'eventday') app.querySelector('.event-day-banner,.activity-cards,.event-day-empty')?.insertAdjacentHTML('beforebegin',connectorQrShortcut());
+  if (state.route === 'home') app.querySelector('.home-actions')?.insertAdjacentHTML('afterend',connectorQrShortcut());
   const themeColor = document.querySelector('meta[name="theme-color"]'); if (themeColor) themeColor.content = safeHex(connector()?.primaryColor) || '#351065';
   const topActions = app.querySelector('.top-actions');
   if (topActions) {
