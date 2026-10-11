@@ -1,7 +1,8 @@
 window.APP_META = {
-  version: '0.13.1',
+  version: '0.14.0',
   released: '2026-10-11',
   summary: [
+    'Reworked the daily workspace around conversation capture, quick notes, clear next steps and a readable funnel while preserving existing CAT records and workflows',
     'Added a Cloudflare Pages preview mode that always uses synthetic demo data and keeps preview storage isolated on its own origin',
     'Redesigned the mobile workspace with more readable screens, larger touch targets, clearer Event Day participant rows, and safer keyboard and navigation spacing',
     'Improved mobile Lead, Results, form and dialog layouts while preserving CAT records, funnel meanings, permissions and cloud workflows',
@@ -26,6 +27,7 @@ window.APP_META = {
     'Refreshed the UW-style CAT icon cache across the browser tab and PWA without touching Connector-specific logos or saved data'
   ],
   history: [
+    { version: '0.14.0', date: '2026-10-11', summary: 'Introduced a conversation-first home screen, quick capture with running notes, simpler mobile navigation and a warm field-notebook visual system.' },
     { version: '0.13.1', date: '2026-10-11', summary: 'Added isolated Cloudflare Pages preview behaviour: `.pages.dev` always opens synthetic demo data without restoring or syncing cloud sessions.' },
     { version: '0.13.0', date: '2026-10-11', summary: 'Introduced a mobile-first visual system with readable typography, thumb-friendly controls, clearer Event Day and Lead rows, improved Results hierarchy, and keyboard/safe-area support.' },
     { version: '0.12.6', date: '2026-10-11', summary: 'Added optional embedded official UW form modal with external-browser fallback and manual Lead confirmation.' },

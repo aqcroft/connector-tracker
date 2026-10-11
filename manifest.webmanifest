@@ -4,11 +4,11 @@
   "description": "Authenticated, local-first Connector activity and results tracker with cloud synchronisation.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f7f6fa",
-  "theme_color": "#351065",
+  "background_color": "#f3f0e7",
+  "theme_color": "#f3f0e7",
   "icons": [
     {
-      "src": "./icon.svg?v=0.13.1",
+      "src": "./icon.svg?v=0.14.0",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
