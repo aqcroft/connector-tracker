@@ -10,6 +10,12 @@ node server.mjs
 
 Open [http://localhost:4173](http://localhost:4173). Without cloud configuration the app shows the sign-in page and explains that cloud setup is pending. Select **Open the local demo** to view the sample CRM; its records remain on that device and are not cloud-synced. The service worker caches the app shell.
 
+## Isolated Cloudflare Pages preview
+
+Deploy the mobile redesign as a separate Cloudflare Pages project connected to GitHub repository `aqcroft/connector-tracker`. For this isolated project, choose `ux/mobile-first-app-redesign` as its production branch, leave the build command blank, and set the build output directory to `.`. In Settings → Builds → Branch control, set Preview branch to **None** so no other branch, including `main`, is automatically built. Do not add CAT's existing production hostname as a custom domain; use the separate project `.pages.dev` hostname.
+
+Every `.pages.dev` hostname automatically opens CAT in local demo mode with synthetic sample records. CAT skips restoring cloud sessions and cloud sync on that host. Browser storage and the service-worker cache are scoped to the separate hostname, so the preview does not share them with CAT's existing production origin. Cloudflare Pages Git integration rebuilds the project when the selected branch receives a push. When prompted for GitHub authorization, install Cloudflare Workers and Pages with access limited to `aqcroft/connector-tracker`.
+
 ## Prototype data
 
 The local demo includes clearly synthetic profiles (Demo Admin, Demo Partner A/B, Demo Lead 01–09), a Demo Connector, sample Events, 20Ks and test commission rules. The Partner switcher is a demo feature only. It is not authentication and must not be used for live CRM information.
