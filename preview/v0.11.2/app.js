@@ -1,0 +1,1328 @@
+const CHANNELS = ['20K Event', 'WhatsApp', 'Facebook', 'Instagram', 'Social media', 'Website', 'Email', 'Physical signage', 'QR', 'Other', 'Unknown'];
+const COMMISSION_BANDS = [0, 50, 100, 250, 300];
+const APP = window.APP_META || { version: '0.4.0', released: new Date().toISOString().slice(0, 10), summary: [], history: [] };
+const PARTNERS = [{ id: 'demo-admin', name: 'Demo Admin', role: 'Admin', active: true }, { id: 'demo-partner-a', name: 'Demo Partner A', role: 'Partner', active: true }, { id: 'demo-partner-b', name: 'Demo Partner B', role: 'Partner', active: true }];
+const STATUSES = ['Booked', 'Sat', 'Cancelled', 'Ghosted / No-show'];
+const CUSTOMER_OUTCOMES = ['Customer signed up', 'No for now', 'Not discussed / N/A'];
+const PARTNER_OUTCOMES = ['Partner signed up', 'No for now', 'Not discussed / N/A'];
+const OUTCOMES = CUSTOMER_OUTCOMES;
+const periods = ['This month', 'Last month', 'Last 3 months', 'All time'];
+const fmtMoney = amount => `£${Number(amount || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 })}`;
+const dateISO = value => new Date(value).toISOString().slice(0, 10);
+const ordinal = day => { const suffix = day % 100 >= 11 && day % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] || 'th'); return `${day}${suffix}`; };
+const prettyDate = value => { if (!value) return 'No date'; const date = new Date(`${String(value).slice(0, 10)}T12:00:00`); return `${ordinal(date.getDate())} ${date.toLocaleDateString('en-GB', { month: 'short' })}`; };
+const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const today = dateISO(new Date());
+const initialState = () => ({
+  currentUserId: 'demo-admin', selectedConnectorId: 'demo-connector', route: 'home', reportTab: 'team', period: 'This month', followFilter: 'All', search: '', actionPromptDismissed: false,
+  connectors: [{ id: 'demo-connector', code: 'DEMO', name: 'Demo Connector', active: true, logo: '🏀', primaryColor: '#c8102e', accentColor: '#201b2c', reportToken: uid() }],
+  users: PARTNERS,
+  access: [{ connectorId: 'demo-connector', userId: 'demo-admin', role: 'Admin' }, { connectorId: 'demo-connector', userId: 'demo-partner-a', role: 'Editor' }, { connectorId: 'demo-connector', userId: 'demo-partner-b', role: 'Editor' }],
+  activities: [{ id: 'sat-activation', connectorId: 'demo-connector', name: 'Demo Event: Training Activation', date: today, type: 'Event', channel: 'In-person / 20K', notes: '', active: true, createdAt: '2026-09-28T10:00:00.000Z' }, { id: 'parent-whatsapp', connectorId: 'demo-connector', name: 'Demo Campaign: Messaging Launch', date: '2026-10-01', type: 'Campaign', channel: 'WhatsApp', notes: '', active: true, createdAt: '2026-09-30T12:00:00.000Z' }],
+  stats: [{ activityId: 'sat-activation', partnerId: 'demo-admin', forms20K: 6, version: 1 }, { activityId: 'sat-activation', partnerId: 'demo-partner-a', forms20K: 7, version: 1 }, { activityId: 'sat-activation', partnerId: 'demo-partner-b', forms20K: 5, version: 1 }],
+  twentyKRecords: [],
+  leads: [
+    { id: 'demo-lead-01', connectorId: 'demo-connector', partnerId: 'demo-admin', name: 'Demo Lead 01', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'New customer', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: { energy: true, broadband: true, insurance: false, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment sat' }, { date: '2026-10-01', action: 'New customer' }] },
+    { id: 'demo-lead-02', connectorId: 'demo-connector', partnerId: 'demo-admin', name: 'Demo Lead 02', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Tenant', appointment: 'Booked', outcome: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment booked' }] },
+    { id: 'demo-lead-03', connectorId: 'demo-connector', partnerId: 'demo-admin', name: 'Demo Lead 03', received: '2026-10-02', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: 'Ghosted / No-show', outcome: 'No for now', followUp: true, reviewDate: '2027-01-02', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'Ghosted / No-show' }, { date: '2026-10-02', action: 'Follow-up required' }] },
+  { id: 'demo-lead-04', connectorId: 'demo-connector', partnerId: 'demo-partner-a', name: 'Demo Lead 04', received: '2026-10-01', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }] },
+  { id: 'demo-lead-05', connectorId: 'demo-connector', partnerId: 'demo-partner-a', name: 'Demo Lead 05', received: '2026-10-01', channel: 'WhatsApp', activityId: 'sat-activation', homeStatus: 'Tenant', appointment: 'Sat', outcome: 'No for now', followUp: true, reviewDate: '2027-01-01', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-01', action: 'Appointment sat' }, { date: '2026-10-01', action: 'No for now' }, { date: '2026-10-01', action: 'Follow-up required' }] },
+  { id: 'demo-lead-06', connectorId: 'demo-connector', partnerId: 'demo-partner-a', name: 'Demo Lead 06', received: '2026-10-01', channel: 'Website', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: 'Cancelled', outcome: 'No for now', followUp: true, reviewDate: '2026-10-21', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Cancelled' }, { date: '2026-10-02', action: 'No for now' }] },
+  { id: 'demo-lead-07', connectorId: 'demo-connector', partnerId: 'demo-partner-a', name: 'Demo Lead 07', received: '2026-10-01', channel: 'Social media', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'Existing UW customer helped', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: { energy: false, broadband: true, insurance: true, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-01', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }, { date: '2026-10-02', action: 'Existing UW customer helped' }] },
+    { id: 'demo-lead-08', connectorId: 'demo-connector', partnerId: 'demo-partner-b', name: 'Demo Lead 08', received: '2026-10-02', channel: 'In-person / 20K', activityId: 'sat-activation', homeStatus: 'Homeowner', appointment: 'Sat', outcome: 'New customer', followUp: false, reviewDate: '', becamePartner: true, archived: false, services: { energy: true, broadband: true, insurance: false, essentials: 0, unlimited: 1 }, connectorCommission: 125, partnerCommission: 250, commissionRuleVersion: 'CRM-BANDS-2', history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'Appointment sat' }, { date: '2026-10-02', action: 'New customer' }, { date: '2026-10-02', action: 'Became a UW Partner' }] },
+  { id: 'demo-lead-09', connectorId: 'demo-connector', partnerId: 'demo-partner-b', name: 'Demo Lead 09', received: '2026-10-02', channel: 'Unknown', activityId: 'sat-activation', homeStatus: 'Unknown', appointment: '', outcome: 'No for now', followUp: true, reviewDate: '2026-11-02', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, history: [{ date: '2026-10-02', action: 'Lead created' }, { date: '2026-10-02', action: 'No for now' }] }
+  ],
+  generatedPartners: [{ id: 'demo-generated-partner-01', connectorId: 'demo-connector', originLeadId: 'demo-lead-08', name: 'Demo Partner Generated 01', joined: '2026-10-02', introducedBy: 'demo-partner-b', status: 'Active' }],
+  commissionRules: [
+    { id: 'rule-test-basket', version: 'TEST-2026-01', effectiveFrom: '2026-01-01', effectiveTo: '', products: { energy: true, broadband: true, insurance: false, essentials: 0, unlimited: 1 }, partner: 250, connector: 125, label: 'TEST ONLY: Energy + Broadband + 1 Unlimited SIM' },
+    { id: 'rule-test-energy', version: 'TEST-2026-01', effectiveFrom: '2026-01-01', effectiveTo: '', products: { energy: true, broadband: false, insurance: false, essentials: 1, unlimited: 0 }, partner: 100, connector: 50, label: 'TEST ONLY: Energy + 1 Essentials SIM' },
+    { id: 'rule-test-broadband', version: 'TEST-2026-01', effectiveFrom: '2026-01-01', effectiveTo: '', products: { energy: false, broadband: true, insurance: true, essentials: 0, unlimited: 1 }, partner: 250, connector: 125, label: 'TEST ONLY: Broadband + Insurance + 1 Unlimited SIM' }
+  ], commissionReference: { sourceUrl: 'https://uw.co.uk/partner/portal/news/max-your-multiservice', label: 'Official UW multi-service reference', verifiedAt: '' }, outbox: [], history: [], lastSaved: new Date().toISOString()
+});
+
+let state;
+let activeLeadId = '';
+let leadDraftSnapshot = null;
+let leadDraftHistoryLength = 0;
+let leadDraftOutboxLength = 0;
+let draftServices = null;
+let activeActivityId = '';
+let eventTab = 'my';
+let eventFilter = 'all';
+let leadScope = 'my';
+let leadFilter = 'all';
+let publicReportOnly = false;
+let publicReportError = false;
+let toastTimer;
+let undoAction = null;
+let followupDraft = null;
+// The online pilot is authenticated only. Keep old demo records in browser storage untouched.
+let demoMode = false;
+let cloudSession = null;
+let cloudConnectorId = '';
+let cloudBusy = false;
+let cloudError = '';
+let cloudCrmReady = false;
+let cloudSyncState = 'idle';
+let cloudSyncError = '';
+let cloudSyncPromise = null;
+let cloudRefreshPromise = null;
+const cloudVersions = new Map();
+let cloudPartnerIdDraft = '';
+const app = document.getElementById('app');
+const toastNode = document.getElementById('toast');
+app.addEventListener('submit', event => {
+  const form = event.target;
+  if (form.id !== 'twenty-k-form' && form.id !== 'lead-form' && !(form.id === 'activity-form' && createTodayEvent)) return;
+  event.preventDefault(); event.stopImmediatePropagation();
+  const data = new FormData(form);
+  if (form.id === 'activity-form') {
+    const activity = { id: uid(), connectorId: state.selectedConnectorId, name: String(data.get('name') || '').trim(), date: today, type: 'Event', channel: String(data.get('channel') || CHANNELS[0]), notes: '', active: true, createdAt: new Date().toISOString() };
+    state.activities.push(activity); activeActivityId = activity.id; createTodayEvent = false;
+    commit('Created Event ' + activity.name, activity.connectorId, 'activity', activity.id, 'create', { ...activity });
+    navigate('eventday'); showToast('Event created'); return;
+  }
+  if (form.id === 'twenty-k-form') {
+    const activity = activityById(form.dataset.activityId);
+    if (!activity || activity.type !== 'Event') return;
+    const now = new Date().toISOString();
+    const record = { id: uid(), connectorId: activity.connectorId, activityId: activity.id, eventDate: activity.date, name: String(data.get('name') || '').trim(), generatedByPartnerId: state.currentUserId, createdAt: now, updatedAt: now, leadId: null, version: 1 };
+    if (!record.name) return;
+    state.twentyKRecords ||= []; state.twentyKRecords.unshift(record);
+    commit('Added 20K for ' + record.name + ' at ' + activity.name, activity.connectorId, 'twenty-k', record.id, 'create', { ...record });
+    render(); openModal('20K saved', `<p><strong>${escapeHtml(record.name)}</strong> is now linked to ${escapeHtml(activity.name)}.</p><p>Is this also a Lead?</p><div class="modal-actions"><button class="btn btn-secondary" data-action="close-modal">Not now</button><button class="btn btn-primary" data-create-lead-from-twenty-k="${record.id}">Yes, add Lead</button></div>`); return;
+  }
+  const originId = String(data.get('origin20KId') || origin20KId || '');
+  const origin = (state.twentyKRecords || []).find(record => record.id === originId);
+  if (origin && origin.leadId) { showToast('A Lead already exists for this 20K'); return; }
+  if (forceUnlinkedLead && data.get('channel') === '20K Event' && !data.get('eventSelect')) { showToast('Choose the Event for this 20K Event Lead'); app.querySelector('[name="eventSelect"]')?.focus(); return; }
+  const date = String(data.get('received') || today);
+  const activityId = origin?.activityId || (forceUnlinkedLead ? (data.get('channel') === '20K Event' ? String(data.get('eventSelect') || '') : '') : String(data.get('activityId') || activeActivityId || ''));
+  const fromEventDay = !!activityId && !forceUnlinkedLead;
+  const lead = { id: uid(), connectorId: state.selectedConnectorId, generatedByPartnerId: state.currentUserId, currentOwnerId: state.currentUserId, partnerId: state.currentUserId, name: String(data.get('name') || '').trim(), received: date, channel: fromEventDay ? '20K Event' : data.get('channel') || 'Unknown', activityId, origin20KId: origin?.id || '', homeStatus: data.get('homeStatus') || 'Unknown', appointment: '', appointmentOutcome: '', appointmentDate: '', outcome: '', customerResult: '', partnerResult: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, createdAt: new Date().toISOString(), version: 1, progression: [{ stage: 'Lead sent', date }], history: [{ date: today, action: 'Lead created' }] };
+  if (!lead.name) return;
+  state.leads.unshift(lead);
+  if (origin) { origin.leadId = lead.id; origin.updatedAt = new Date().toISOString(); origin.version = (origin.version || 1) + 1; commit('Linked 20K to Lead ' + lead.name, origin.connectorId, 'twenty-k', origin.id, 'update', { ...origin }); }
+  activeLeadId = lead.id; origin20KId = ''; forceUnlinkedLead = false;
+  commit('Added Lead ' + lead.name + (origin ? ' from 20K' : ''), lead.connectorId, 'lead', lead.id, 'create', { ...lead });
+  showToast('Lead saved on this device'); const mode = event.submitter?.value || 'close'; draftServices = null; if (mode === 'open') navigate('lead'); else { navigate(leadReturnRoute || (fromEventDay ? 'eventday' : 'leads')); }
+}, true);
+document.addEventListener('click', event => {
+  if (event.target.closest('#modal-wrap [data-action="close-modal"]') || event.target.id === 'modal-wrap') closeModal();
+  const switchButton = event.target.closest('[data-switch-user]');
+  if (switchButton) { if (cloudCrmReady) { showToast('Partner identities are managed by Companion. Sign out to change account.'); return; } state.currentUserId = switchButton.dataset.switchUser; draftServices = null; if (!hasAccess()) state.selectedConnectorId = state.connectors.find(item => hasAccess(item.id))?.id || ''; state.route = 'home'; closeModal(); render(); persist(); }
+  if (event.target.closest('[data-action="undo-last"]') && undoAction) { const action = undoAction; const index = state.leads.findIndex(item => item.id === action.leadId); if (index >= 0) state.leads[index] = structuredClone(action.previous); if (action.history) state.history = structuredClone(action.history); if (action.outbox) state.outbox = structuredClone(action.outbox); undoAction = null; followupDraft = null; closeModal(); commit(`Undid appointment update for ${state.leads[index]?.name || 'Lead'}`, state.leads[index]?.connectorId, 'lead', action.leadId, 'update', state.leads[index] ? { ...state.leads[index] } : null); state.route = action.route || state.route; render(); showToast('Appointment update undone'); }
+  const convert20k = event.target.closest('[data-convert-20k]');
+  if (convert20k) { closeModal(); convertTwentyKToLead(convert20k.dataset.convert20k); return; }
+});
+document.addEventListener('click', event => {
+  const quantity = event.target.closest('[data-modal-follow-quantity]');
+  const period = event.target.closest('[data-modal-follow-period]');
+  if (quantity || period) {
+    if (!followupDraft) return;
+    if (quantity) followupDraft.quantity = quantity.dataset.modalFollowQuantity;
+    if (period) followupDraft.period = period.dataset.modalFollowPeriod;
+    const group = quantity ? '[data-modal-follow-quantity]' : '[data-modal-follow-period]';
+    document.querySelectorAll(group).forEach(button => { const selected = button === (quantity || period); button.classList.toggle('active', selected); button.setAttribute('aria-pressed', String(selected)); });
+    if (followupDraft.quantity && followupDraft.period) followupDraft.date = addDatePreset(today, followupDraft.quantity, followupDraft.period);
+    const date = document.querySelector('[data-modal-follow-date]'); if (date && followupDraft.date) date.value = followupDraft.date;
+    const preview = document.querySelector('[data-modal-follow-preview]'); if (preview) preview.textContent = followupDraft.date ? `Follow-up on ${prettyDate(followupDraft.date)}` : 'Choose a quantity and period.';
+    return;
+  }
+  if (event.target.closest('[data-modal-follow-date]')) { followupDraft.date = event.target.value; return; }
+  const lead = followupDraft && state.leads.find(item => item.id === followupDraft.leadId);
+  if (event.target.closest('[data-modal-follow-none]')) { if (lead) { lead.followUp = false; lead.reviewDate = ''; addHistory(lead, 'Follow-up not required'); commit(`No follow-up for ${lead.name}`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); } followupDraft = null; closeModal(); render(); return; }
+  if (event.target.closest('[data-modal-follow-save]')) { const date = document.querySelector('[data-modal-follow-date]')?.value || followupDraft?.date || ''; if (!lead || !date) { showToast('Choose a follow-up date or select No follow-up'); return; } lead.followUp = true; lead.reviewDate = date; lead.followUpReason = 'Appointment follow-up'; addHistory(lead, `Follow-up scheduled · ${prettyDate(date)}`); commit(`Scheduled ${lead.name} follow-up`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); followupDraft = null; closeModal(); render(); return; }
+});
+document.addEventListener('click', event => {
+  const target = event.target.closest('[data-set-customer],[data-set-partner-result]');
+  if (!target || !state) return;
+  const lead = state.leads.find(item => item.id === activeLeadId);
+  if (!lead) return;
+  event.stopImmediatePropagation();
+  if (target.dataset.setCustomer) {
+    lead.customerResult = target.dataset.setCustomer; lead.outcome = lead.customerResult;
+    addHistory(lead, 'Customer result: ' + lead.customerResult);
+  } else {
+    lead.partnerResult = target.dataset.setPartnerResult; lead.partnerResultDate = today; lead.becamePartner = lead.partnerResult === 'Partner signed up';
+    state.generatedPartners = state.generatedPartners.filter(item => item.originLeadId !== lead.id);
+    if (lead.becamePartner) state.generatedPartners.push({ id: uid(), connectorId: lead.connectorId, originLeadId: lead.id, name: lead.name, joined: today, introducedBy: lead.generatedByPartnerId || lead.partnerId, status: 'Active' });
+    addHistory(lead, 'Partner result: ' + lead.partnerResult);
+  }
+  lead.updatedAt = new Date().toISOString(); lead.version = (lead.version || 0) + 1;
+  commit('Updated ' + lead.name + ' result', lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render();
+});
+document.addEventListener('click', event => {
+  const target = event.target.closest('[data-set-progress],[data-set-appointment],[data-inbox-lead]');
+  if (!target || !state) return;
+  const lead = state.leads.find(item => item.id === (target.dataset.inboxLead || activeLeadId));
+  if (!lead) return;
+  event.stopImmediatePropagation();
+  const value = target.dataset.setProgress || target.dataset.setAppointment || target.dataset.quickOutcome;
+  if (target.dataset.inboxLead) {
+    undoAction = { leadId: lead.id, route: state.route, previous: structuredClone(lead), history: structuredClone(state.history), outbox: structuredClone(state.outbox) };
+    if (!historyHas(lead, 'Booked')) stageHistory(lead, 'Booked', lead.appointmentDate || today);
+    lead.appointmentOutcome = value;
+    lead.appointment = value;
+    stageHistory(lead, value, today);
+    addHistory(lead, `Appointment ${value.toLowerCase()}`);
+    lead.updatedAt = new Date().toISOString(); lead.version = (lead.version || 0) + 1;
+    commit(`Updated ${lead.name}: ${value}`, lead.connectorId, 'lead', lead.id, 'update', { ...lead });
+    if (value === 'Sat') {
+      activeLeadId = lead.id; leadReturnRoute = 'inbox'; navigate('lead');
+      setTimeout(() => app.querySelector('.outcome-panel, [data-set-customer]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 40);
+      return;
+    }
+    render();
+    showUndoToast(`${lead.name} marked ${value === 'Ghosted / No-show' ? 'Ghosted' : value}`);
+    if (value === 'Cancelled' || value === 'Ghosted / No-show') suggestFollowUp(lead);
+    return;
+  }
+  if (target.dataset.setAppointment && ['Cancelled', 'Ghosted / No-show'].includes(value)) undoAction = { leadId: lead.id, route: state.route, previous: structuredClone(lead), history: structuredClone(state.history), outbox: structuredClone(state.outbox) };
+  if (target.dataset.setProgress) {
+    if (value === 'Quote sent') { if (lead.quoteSentAt || historyHas(lead, 'Quote sent')) { lead.quoteSentAt = ''; lead.progression = (lead.progression || []).filter(item => item.stage !== 'Quote sent'); } else { stageHistory(lead, value, today); lead.quoteSentAt = today; } }
+    else if (value === 'Booked') { const unset = lead.appointment === 'Booked' || !!appointmentOutcome(lead); lead.appointment = unset ? '' : 'Booked'; if (unset) { lead.appointmentOutcome = ''; lead.progression = (lead.progression || []).filter(item => !['Booked','Sat','Cancelled','Ghosted / No-show'].includes(item.stage)); } else stageHistory(lead, 'Booked', today); }
+  } else if (value === 'Booked') {
+    const unset = lead.appointment === 'Booked' || !!appointmentOutcome(lead); lead.appointment = unset ? '' : 'Booked';
+    if (unset) { lead.appointmentOutcome = ''; lead.progression = (lead.progression || []).filter(item => !['Booked','Sat','Cancelled','Ghosted / No-show'].includes(item.stage)); } else stageHistory(lead, 'Booked', today);
+  } else {
+    if (target.dataset.inboxLead && value === 'Sat') { lead.appointmentOutcome = 'Sat'; lead.appointment = 'Sat'; stageHistory(lead, 'Sat', today); activeLeadId = lead.id; leadReturnRoute = 'inbox'; lead.updatedAt = new Date().toISOString(); commit(`Updated ${lead.name}: Sat`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); navigate('lead'); setTimeout(() => app.querySelector('.outcome-panel, [data-set-customer]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 40); return; }
+    if (!historyHas(lead, 'Booked')) stageHistory(lead, 'Booked', lead.appointmentDate || today);
+    lead.appointment ||= 'Booked';
+    lead.appointmentOutcome = value;
+    stageHistory(lead, value, today);
+  }
+  lead.updatedAt = new Date().toISOString(); lead.version = (lead.version || 0) + 1;
+  addHistory(lead, value === 'Booked' ? 'Appointment set' : value === 'Quote sent' ? 'Quote sent' : 'Appointment ' + value.toLowerCase());
+  commit('Updated ' + lead.name + ': ' + (value === 'Booked' ? 'Appointment set' : value), lead.connectorId, 'lead', lead.id, 'update', { ...lead });
+  render();
+  if (target.dataset.inboxLead || (target.dataset.setAppointment && ['Cancelled', 'Ghosted / No-show'].includes(value))) { showUndoToast(lead.name + ' marked ' + (value === 'Ghosted / No-show' ? 'Ghosted' : value)); if (value === 'Cancelled' || value === 'Ghosted / No-show') suggestFollowUp(lead); }
+});
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && document.getElementById('modal-wrap')) closeModal(); });
+const currentUser = () => state.users.find(user => user.id === state.currentUserId) || state.users[0];
+const connector = (id = state.selectedConnectorId) => state.connectors.find(item => item.id === id);
+const logoMarkup = item => item?.logo?.startsWith('data:image/') ? `<img src="${item.logo}" alt="${escapeHtml(item.name)} logo" style="width:100%;height:100%;object-fit:contain;border-radius:50%">` : (item?.logo || '🏀');
+const avatarMarkup = user => user?.avatar?.startsWith('data:image/') ? `<img src="${user.avatar}" alt="${escapeHtml(user.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : escapeHtml((user?.name || '?').split(/\s+/).map(part => part[0]).slice(0,2).join('').toUpperCase());
+const safeHex = value => /^#[0-9a-f]{6}$/i.test(value || '') ? value : '';
+const readableText = value => { const hex = safeHex(value); if (!hex) return '#ffffff'; const rgb = hex.slice(1).match(/.{2}/g).map(part => parseInt(part, 16) / 255).map(channel => channel <= .03928 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4); return .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2] > .42 ? '#201b2c' : '#ffffff'; };
+const userName = id => state.users.find(user => user.id === id)?.name || 'Unknown Partner';
+const hasAccess = (connectorId = state.selectedConnectorId) => state.access.some(access => access.connectorId === connectorId && access.userId === state.currentUserId);
+const currentConnectorRole = (connectorId = state.selectedConnectorId) => state.access.find(access => access.connectorId === connectorId && access.userId === state.currentUserId)?.role || '';
+const isConnectorAdmin = (connectorId = state.selectedConnectorId) => currentConnectorRole(connectorId) === 'Admin';
+const selectedLeads = (includeArchived = false) => hasAccess() ? state.leads.filter(lead => lead.connectorId === state.selectedConnectorId && (includeArchived || !lead.archived)) : [];
+const statFor = (activityId, partnerId) => state.stats.filter(stat => stat.activityId === activityId && stat.partnerId === partnerId).reduce((sum, stat) => sum + Number(stat.forms20K || 0), 0);
+const event20Ks = activityId => (state.twentyKRecords || []).filter(record => record.activityId === activityId);
+const legacy20KFor = (activityId, partnerId = '') => state.stats.filter(stat => stat.activityId === activityId && (!partnerId || stat.partnerId === partnerId)).reduce((sum, stat) => sum + Number(stat.forms20K || 0), 0);
+const activityById = id => state.activities.find(activity => activity.id === id);
+const customerOutcome = lead => ({ 'New customer': 'Customer signed up', 'Existing UW customer helped': 'Existing UW customer helped', 'Not discussed / not applicable': 'Not discussed / N/A' }[lead.customerResult || lead.outcome] || lead.customerResult || lead.outcome || '');
+const partnerOutcome = lead => ({ 'Became a UW Partner': 'Partner signed up', 'Not discussed / not applicable': 'Not discussed / N/A' }[lead.partnerResult] || lead.partnerResult || (lead.becamePartner ? 'Partner signed up' : ''));
+const outcomeIsCustomer = lead => ['Customer signed up', 'Existing UW customer helped'].includes(customerOutcome(lead));
+const progressionLabel = lead => lead.progression?.length ? lead.progression[lead.progression.length - 1].stage : (lead.appointment || (lead.outcome ? lead.outcome : 'Lead sent'));
+const displayProgression = lead => ({ Booked: 'Appointment set', Sat: 'Appointment sat' }[progressionLabel(lead)] || progressionLabel(lead));
+const historyHas = (lead, stage) => (lead.progression || []).some(item => item.stage === stage);
+const hasAppointmentOutcome = lead => ['Sat', 'Cancelled', 'Ghosted / No-show'].includes(lead.appointmentOutcome || lead.appointment);
+const appointmentOutcome = lead => lead.appointmentOutcome || (['Sat', 'Cancelled', 'Ghosted / No-show'].includes(lead.appointment) ? lead.appointment : '');
+const needsUpdate = lead => {
+  if (lead.archived || !hasAccess(lead.connectorId)) return false;
+  if (lead.followUp && lead.reviewDate && lead.reviewDate > today) return false;
+  if (lead.followUp && lead.reviewDate && lead.reviewDate <= today) return true;
+  if (lead.followUp && !lead.reviewDate) return true;
+  if (['Sat', 'Cancelled', 'Ghosted / No-show'].includes(appointmentOutcome(lead))) {
+    if (appointmentOutcome(lead) === 'Sat' && (!customerOutcome(lead) || !partnerOutcome(lead))) return true;
+    return false;
+  }
+  if (progressionLabel(lead) === 'Booked' && lead.appointmentDate && lead.appointmentDate >= today) return false;
+  if (lead.appointmentDate && lead.appointmentDate < today) return true;
+  return !lead.outcome && ['Lead sent', 'Quote sent', 'Booked'].includes(progressionLabel(lead));
+};
+const needsUpdateLeads = (leads = selectedLeads()) => leads.filter(needsUpdate).filter(lead => isConnectorAdmin(lead.connectorId) || (lead.currentOwnerId || lead.partnerId) === state.currentUserId);
+const followUpLeads = (leads = selectedLeads()) => leads.filter(lead => lead.followUp);
+const contextLine = lead => { const activity = activityById(lead.activityId); return activity ? `${activity.name} · ${prettyDate(activity.date)}` : `${lead.channel || 'Unknown'} · ${prettyDate(lead.received)}`; };
+const stageHistory = (lead, stage, date = today) => { lead.progression ||= []; if (!lead.progression.some(item => item.stage === stage && item.date === date)) lead.progression.push({ stage, date }); };
+const stageDate = (lead, stage) => lead.progression?.filter(item => item.stage === stage).sort((a,b) => a.date.localeCompare(b.date))[0]?.date || '';
+const latestResult = leadId => state.customerResults?.filter(result => result.leadId === leadId).sort((a, b) => b.resultDate.localeCompare(a.resultDate))[0];
+const resultFor = lead => latestResult(lead.id) || lead;
+const qualifyingServiceCount = services => Math.min(4, Number(!!services?.energy) + Number(!!services?.broadband) + Number(!!(services?.boilerCover ?? services?.insurance)) + Number(Number(services?.essentials || 0) > 0) + Math.min(2, Number(services?.unlimited || 0)));
+const serviceCount = lead => { const result = resultFor(lead); return result.services ? qualifyingServiceCount(result.services) : 0; };
+const activeConnectorActivities = () => hasAccess() ? state.activities.filter(activity => activity.connectorId === state.selectedConnectorId && activity.active) : [];
+
+function showToast(message) {
+  toastNode.textContent = message;
+  toastNode.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastNode.classList.remove('show'), 2300);
+}
+function showUndoToast(message) { toastNode.innerHTML = `${escapeHtml(message)} <button class="toast-undo" data-action="undo-last" type="button">Undo</button>`; toastNode.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastNode.classList.remove('show'); toastNode.textContent = ''; undoAction = null; }, 5000); }
+function database() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) return reject(new Error('IndexedDB unavailable'));
+    const request = indexedDB.open('connector-performance-tracker-preview-v0.11.2', 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('local', { keyPath: 'key' });
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+function stateStorageKey() { return cloudSession && !demoMode ? `preview-0.11.2-app-state-cloud-${encodeURIComponent(cloudSession.profile.partnerId)}` : 'preview-0.11.2-app-state'; }
+function localStorageStateKey() { return cloudSession && !demoMode ? `preview-0.11.2-connector-tracker-state-${encodeURIComponent(cloudSession.profile.partnerId)}` : 'preview-0.11.2-connector-tracker-state'; }
+async function loadState(key = stateStorageKey()) {
+  try {
+    const db = await database();
+    const stored = await new Promise((resolve, reject) => {
+      const request = db.transaction('local', 'readonly').objectStore('local').get(key);
+      request.onsuccess = () => resolve(request.result?.value);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    if (stored) return { ...initialState(), ...stored };
+  } catch (error) { console.warn('Using browser storage fallback.', error); }
+  try { const stored = JSON.parse(localStorage.getItem(localStorageStateKey()) || 'null'); if (stored) return { ...initialState(), ...stored }; } catch {}
+  return initialState();
+}
+async function persist() {
+  state.lastSaved = new Date().toISOString();
+  try {
+    const db = await database();
+    await new Promise((resolve, reject) => {
+      const request = db.transaction('local', 'readwrite').objectStore('local').put({ key: stateStorageKey(), value: state });
+      request.onsuccess = resolve; request.onerror = () => reject(request.error);
+    });
+    db.close();
+  } catch { localStorage.setItem(localStorageStateKey(), JSON.stringify(state)); }
+}
+function commit(summary, connectorId = state.selectedConnectorId, entity = 'record', recordId = '', action = 'upsert', payload = null) {
+  const now = new Date().toISOString();
+  state.history.unshift({ id: uid(), connectorId, partnerId: state.currentUserId, timestamp: now, summary });
+  const cloudEntity = ['activity', 'twenty-k', 'lead', 'activity-partner-stat', 'customer-result', 'generated-partner', 'commission-rule', 'connector'].includes(entity);
+  if (cloudEntity) {
+    const entityId = payload?.id || recordId || uid();
+    const queuedAhead = entity === 'connector' ? 0 : state.outbox.filter(change => change.entity === entity && change.connectorId === connectorId && (change.payload?.id || change.entityId) === entityId).length;
+    const baseCloudVersion = entity === 'connector' ? 0 : (cloudVersions.get(cloudRecordKey(connectorId, entity, entityId)) || 0) + queuedAhead;
+    state.outbox.push({ transactionId: uid(), entity, entityId, action, version: payload?.version || 1, baseCloudVersion, payload, connectorId, createdAt: now, status: 'pending', retryCount: 0 });
+  }
+  persist();
+  if (cloudCrmReady && !demoMode) persist().then(syncCloudOutbox);
+}
+function navigate(route, options = {}) { state.route = route; state.search = ''; if (!options.replace) history.pushState({ route, leadFilter, activeLeadId, activeActivityId }, '', location.href); render(); }
+window.addEventListener('popstate', event => { const next = event.state || {}; state.route = next.route || 'home'; leadFilter = next.leadFilter || 'all'; activeLeadId = next.activeLeadId || ''; activeActivityId = next.activeActivityId || ''; render(); });
+function setPeriod(period) { state.period = period; render(); }
+function periodLeads(leads) {
+  const now = new Date();
+  const endToday = new Date(now); endToday.setHours(23, 59, 59, 999);
+  const firstThis = new Date(now.getFullYear(), now.getMonth(), 1);
+  const firstLast = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const firstThree = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  return leads.filter(lead => {
+    const date = new Date(`${lead.received}T12:00:00`);
+    if (state.period === 'This month') return date >= firstThis && date <= endToday;
+    if (state.period === 'Last month') return date >= firstLast && date < firstThis;
+    if (state.period === 'Last 3 months') return date >= firstThree && date <= now;
+    return true;
+  });
+}
+function inSelectedPeriod(value) {
+  if (!value || state.period === 'All time') return true;
+  const date = new Date(String(value).slice(0, 10) + 'T12:00:00');
+  const now = new Date(); const endToday = new Date(now); endToday.setHours(23, 59, 59, 999); const firstThis = new Date(now.getFullYear(), now.getMonth(), 1); const firstLast = new Date(now.getFullYear(), now.getMonth() - 1, 1); const firstThree = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  if (state.period === 'This month') return date >= firstThis && date <= endToday;
+  if (state.period === 'Last month') return date >= firstLast && date < firstThis;
+  return date >= firstThree && date <= endToday;
+}
+function metrics(leads, partnerId = '') {
+  const filtered = leads.filter(lead => !partnerId || (lead.generatedByPartnerId || lead.partnerId) === partnerId);
+  const teamStats = state.stats.filter(stat => {
+    const activity = activityById(stat.activityId);
+    return hasAccess() && activity?.connectorId === state.selectedConnectorId && (!partnerId || stat.partnerId === partnerId) && (state.period === 'All time' || state.period === 'Last 3 months' || activity.date.slice(0, 7) === today.slice(0, 7) || (state.period === 'Last month' && activity.date.slice(0, 7) === new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 7)));
+  }).reduce((sum, stat) => sum + stat.forms20K, 0);
+  return {
+    forms: teamStats + (state.twentyKRecords || []).filter(record => record.connectorId === state.selectedConnectorId && (!partnerId || record.generatedByPartnerId === partnerId) && inSelectedPeriod(record.eventDate)).length, leads: filtered.length, booked: filtered.filter(lead => historyHas(lead, 'Booked') || ['Booked', 'Sat'].includes(lead.appointment)).length,
+    sat: filtered.filter(lead => historyHas(lead, 'Sat') || lead.appointment === 'Sat').length, customers: filtered.filter(lead => outcomeIsCustomer(lead)).length,
+    services: filtered.reduce((sum, lead) => sum + serviceCount(lead), 0), income: filtered.reduce((sum, lead) => sum + (resultFor(lead).connectorCommission || 0), 0),
+    earnings: filtered.reduce((sum, lead) => sum + (resultFor(lead).partnerCommission || 0), 0), partners: filtered.filter(lead => lead.becamePartner).length, needsUpdate: filtered.filter(needsUpdate).length
+  };
+}
+function sumServices(leads) { return leads.reduce((sum, lead) => sum + serviceCount(lead), 0); }
+function iconForRoute(route) { return ({ home: '⌂', eventday: '🏀', activities: '▦', leads: '◎', progress: '↗', reports: '▤', connectors: '⚙' })[route] || '•'; }
+const navItems = [{ id: 'home', label: 'Home' }, { id: 'eventday', label: 'Event Day' }, { id: 'leads', label: 'Leads' }, { id: 'progress', label: 'Results' }, { id: 'activities', label: 'Activities' }, { id: 'connectors', label: 'Setup / Admin' }, { id: 'about', label: 'About' }];
+function shell(content, title) {
+  const user = currentUser();
+  const bottom = state.route === 'home' ? navItems.filter(item => item.id === 'home') : navItems.filter(item => item.id === 'home' || item.id === state.route);
+  return `<div class="app-shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">🏀</div><div><div class="brand-name">Connector<br>Tracker</div><div class="brand-kicker">Performance, made simple</div></div></div><div class="side-label">Workspace</div><nav class="nav-list">${navItems.map(item => `<button class="nav-btn ${state.route === item.id ? 'active' : ''}" data-route="${item.id}"><span class="nav-icon">${iconForRoute(item.id)}</span>${item.label}</button>`).join('')}</nav><div class="sidebar-bottom"><div class="local-state"><strong>✓ Saved on this device</strong>${state.outbox.length ? `${state.outbox.length} change${state.outbox.length === 1 ? '' : 's'} waiting for cloud sync` : 'Cloud sync is not connected'}</div><button class="profile-switch" data-action="profile"><span class="avatar">${user.name.slice(0, 1)}</span><span class="profile-copy"><span class="profile-name">${user.name}</span><span class="profile-role">${user.role === 'Admin' ? 'Team Admin' : 'Partner'}</span></span><span>⌄</span></button></div></aside><main class="main-area"><header class="topbar"><div class="crumbs"><span>Demo Connector</span><span>›</span><strong>${title}</strong></div><div class="top-actions"><span class="sync-pill" title="Stored locally. Cloud sync is not connected.">● Local</span>${!['lead','newlead','newactivity','connectors'].includes(state.route) ? `<select class="period-select" data-period>${periods.map(period => `<option ${period === state.period ? 'selected' : ''}>${period}</option>`).join('')}</select>` : ''}<button class="icon-btn" data-action="connectors" title="Switch Connector" aria-label="Switch Connector">◈</button></div></header><section class="content">${content}</section></main><nav class="mobile-nav">${bottom.map(item => `<button class="${state.route === item.id ? 'active' : ''}" data-route="${item.id}"><span>${iconForRoute(item.id)}</span><span>${item.label}</span></button>`).join('')}<button data-action="profile"><span>●</span><span>${user.name}</span></button></nav></div>`;
+}
+function heading(title, subtitle = '', actions = '') { return `<div class="page-heading"><div><div class="eyebrow">${escapeHtml(connector()?.name || 'Portfolio')}</div><h1>${title}</h1>${subtitle ? `<p>${subtitle}</p>` : ''}</div><div class="heading-actions">${actions}</div></div>`; }
+function connectorStrip() { const item = connector(); return `<div class="connector-strip"><div class="connector-logo">${logoMarkup(item)}</div><div class="connector-meta"><strong>${item?.name || 'Connector'}</strong><span>${item?.code || ''} · ${currentConnectorRole() === 'Admin' ? 'Connector Admin' : 'Partner'}</span></div><span class="badge green">Active</span><button class="icon-btn" data-action="connectors" title="Switch Connector">⌄</button></div>`; }
+function metricCard(label, value, color = 'var(--purple)', note = '', tint = '#f0eafa') { return `<div class="metric-card" style="--color:${color};--tint:${tint}"><div class="metric-label">${label}</div><div class="metric-value">${value}</div>${note ? `<div class="metric-note">${note}</div>` : ''}</div>`; }
+function eventMetricCard(label, value, filter, color) { return `<button type="button" class="metric-card" data-event-filter="${filter}" style="--color:${color};--tint:#f0eafa;text-align:left"><div class="metric-label">${label}</div><div class="metric-value">${value}</div></button>`; }
+function drillMetricCard(label, value, filter, color, note = '') { return `<button type="button" class="metric-card" data-lead-filter="${filter}" style="--color:${color};--tint:#f0eafa;text-align:left"><div class="metric-label">${label}</div><div class="metric-value">${value}</div>${note ? `<div class="metric-note">${note}</div>` : ''}</button>`; }
+function metricsGrid(m, includePartner = true) { return `<div class="metric-grid">${metricCard('20K forms', m.forms, 'var(--green)', 'Partner counts', '#e3f6ec')}${metricCard('Leads', m.leads, 'var(--blue)', 'Genuine opportunities', '#e7edff')}${metricCard('Appointments set', m.booked, 'var(--purple-2)', 'Historical milestone', '#f0eafa')}${metricCard('Customers', m.customers, 'var(--pink)', `${m.services} products`, '#fde8f3')}${metricCard('Connector income', fmtMoney(m.income), 'var(--green)', 'TEST RULES', '#e3f6ec')}${metricCard('Partners', m.partners, 'var(--orange)', 'Parallel outcome', '#fff2d8')}</div>`; }
+function actionButton(action, icon, title, caption) { return `<button class="quick-action" data-action="${action}"><span class="quick-icon">${icon}</span><span><strong>${title}</strong><small>${caption}</small></span></button>`; }
+function actionInbox(leads = selectedLeads()) {
+  if (state.actionPromptDismissed) return '';
+  const outstanding = needsUpdateLeads(leads);
+  return `<div class="panel action-inbox ${outstanding.length ? 'has-actions' : 'all-clear'}"><div class="panel-head"><div><h2>Action Inbox <span class="badge ${outstanding.length ? 'pink' : 'green'}">${outstanding.length}</span></h2><p>${outstanding.length ? `${outstanding.length} Lead${outstanding.length === 1 ? '' : 's'} need updating` : "You're up to date"}</p></div>${outstanding.length ? '<div style="display:flex;gap:7px"><button class="btn btn-secondary btn-sm" data-route="inbox">Review now →</button><button class="text-link" data-action="dismiss-inbox">Later</button></div>' : '<span class="badge green">✓ Clear</span>'}</div>${outstanding.length ? `<div class="lead-list">${outstanding.slice(0, 3).map(lead => `<article class="lead-card inbox-row"><span class="activity-symbol">!</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))}${lead.appointmentDate ? ` · Appointment ${prettyDate(lead.appointmentDate)}` : ''}</p></div><div class="lead-actions"><button class="btn btn-soft btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Sat">Mark Sat</button><button class="btn btn-secondary btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Cancelled">Mark Cancelled</button><button class="btn btn-secondary btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Ghosted / No-show">Mark Ghosted</button></div></article>`).join('')}${outstanding.length > 3 ? `<button class="text-link" data-route="inbox">View all ${outstanding.length} →</button>` : ''}</div>` : ''}</div>`;
+}
+function homeView() {
+  const leads = periodLeads(selectedLeads()); const m = metrics(leads);
+  const recent = [...state.history.filter(item => item.connectorId === state.selectedConnectorId).slice(0, 3)];
+  return `${heading(`Good ${greeting()}, ${currentUser().name}`, 'Here is your Connector snapshot for the selected period.', `<button class="btn btn-primary" data-action="newlead">＋ Add Lead</button>`)}${connectorStrip()}${actionInbox()}${metricsGrid(m)}<div class="layout-grid"><div class="panel"><div class="panel-head"><div><h2>Quick actions</h2><p>Keep the next step close at hand</p></div></div><div class="quick-grid">${actionButton('newlead', '＋', 'Add a Lead', 'Record a new opportunity')}${actionButton('newactivity', '▦', 'Log Activity / 20K', 'Add an event or count')}${actionButton('leads', '◎', 'View Leads', 'Update outcomes and follow-ups')}${actionButton('reports', '▤', 'Reports', 'Team and channel results')}</div></div><div class="panel"><div class="panel-head"><div><h2>Recent activity</h2><p>Latest updates from your team</p></div><button class="text-link" data-route="activities">All activities →</button></div><div class="activity-list">${recent.length ? recent.map(item => `<div class="activity-row"><div class="activity-symbol">◉</div><div class="activity-copy"><strong>${escapeHtml(item.summary)}</strong><small>${userName(item.partnerId)}</small></div><span class="activity-time">${relativeDate(item.timestamp)}</span></div>`).join('') : '<div class="empty-state">New activity will show up here.</div>'}</div></div></div><div class="panel" style="margin-top:15px"><div class="panel-head"><div><h2>Recent activities</h2><p>Open an event to review your contribution and team results</p></div><button class="text-link" data-route="activities">View all →</button></div><div class="activity-cards">${activeConnectorActivities().slice(0,2).map(activityCard).join('')}</div></div>`;
+}
+function greeting() { const hour = new Date().getHours(); return hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'; }
+function relativeDate(value) { const days = Math.floor((Date.now() - new Date(value).getTime()) / 86400000); return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days} days ago`; }
+function escapeHtml(value = '') { return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]); }
+function activityLeads(activityId, partnerId = '') { return selectedLeads().filter(lead => lead.activityId === activityId && (!partnerId || lead.partnerId === partnerId)); }
+function activityCard(activity) {
+  const leads = activityLeads(activity.id); const booked = leads.filter(lead => historyHas(lead,'Booked') || ['Booked','Sat'].includes(lead.appointment)).length; const customers = leads.filter(outcomeIsCustomer).length;
+  return `<article class="event-card" data-open-activity="${activity.id}"><div class="split-head"><div><div class="event-title">${escapeHtml(activity.name)}</div><div class="event-sub">${prettyDate(activity.date)} · ${escapeHtml(activity.channel)}</div></div><span class="badge">${leads.length} Leads</span></div><div class="event-summary"><div><strong>${state.stats.filter(stat => stat.activityId === activity.id).reduce((sum, stat) => sum + stat.forms20K, 0)}</strong><span>20K forms</span></div><div><strong>${booked}</strong><span>Set</span></div><div><strong>${customers}</strong><span>Customers</span></div></div><div class="event-footer"><span class="small muted">${fmtMoney(leads.reduce((sum, lead) => sum + (resultFor(lead).connectorCommission || 0), 0))} test income</span><button class="btn btn-secondary btn-sm" data-open-activity="${activity.id}">Open event →</button></div></article>`;
+}
+function activitiesView() { const activities = activeConnectorActivities().sort((a,b) => b.date.localeCompare(a.date)); return `${heading('Activities & events', 'Your event owns its 20K counts and every Lead outcome linked to it.', `<button class="btn btn-primary" data-action="newactivity">＋ Log Activity</button>`)}<div class="activity-cards">${activities.length ? activities.map(activityCard).join('') : '<div class="empty-state"><strong>No activities yet</strong>Create an activity and record your first 20K count.</div>'}</div>`; }
+function activityFormView() {
+  const item = activeActivityId ? activityById(activeActivityId) : null;
+  const count = statFor(item?.id, state.currentUserId);
+  const stats = item ? state.stats.filter(stat => stat.activityId === item.id) : [];
+  const total = stats.reduce((sum, stat) => sum + stat.forms20K, 0);
+  return `${heading(item ? 'Log your 20K count' : 'Create an activity', item ? 'Each Partner records their own count. The team total updates automatically.' : 'Create an event in advance, then add 20K counts on the day.')}${connectorStrip()}<div class="form-shell"><form class="panel" id="activity-form"><div class="form-grid"><div class="field full"><label for="activity-name">Activity / event name</label><input id="activity-name" name="name" required maxlength="80" placeholder="e.g. Demo Event: Training Activation" value="${escapeHtml(item?.name || '')}"></div><div class="field"><label for="activity-date">Date</label><input id="activity-date" name="date" type="date" value="${item?.date || today}" required></div><div class="field"><label for="activity-type">Activity type</label><select id="activity-type" name="type">${['Event','Campaign','Ongoing asset'].map(type => `<option ${type === (item?.type || 'Event') ? 'selected' : ''}>${type}</option>`).join('')}</select></div><div class="field"><label for="activity-channel">Channel</label><select id="activity-channel" name="channel">${CHANNELS.map(channel => `<option ${channel === (item?.channel || CHANNELS[0]) ? 'selected' : ''}>${channel}</option>`).join('')}</select></div><div class="field full"><label for="activity-notes">Notes <span class="muted">· optional</span></label><textarea id="activity-notes" name="notes" maxlength="240" placeholder="A short note to help you recognise this activity later">${escapeHtml(item?.notes || '')}</textarea></div></div>${item ? `<div class="section-title">My 20K forms <span class="badge">${currentUser().name}</span></div><div class="stepper"><button type="button" data-count="-1" aria-label="Decrease my count">−</button><output id="count-value">${count}</output><button type="button" data-count="1" aria-label="Increase my count">＋</button></div><div class="helper" style="text-align:center;margin:8px 0 15px">Only your own count is changed here.</div><div class="section-title">Event team so far</div><div class="team-counts">${state.users.filter(user => user.active).map(user => `<div class="team-count"><span>${user.name}</span><strong>${statFor(item.id, user.id)}</strong></div>`).join('')}</div><div class="total-count"><span>Team total</span><strong id="team-total">${total}</strong></div>` : '<div class="callout" style="margin-top:16px">This creates the event shell without a count. Add Leads now, then update 20K forms from the event page when activity happens.</div>'}<div style="display:flex;gap:8px;margin-top:16px"><button type="button" class="btn btn-secondary" data-route="activities">Cancel</button><button class="btn btn-pink" type="submit" style="flex:1">${item ? 'Save my count' : 'Create activity'}</button></div></form></div>`;
+}
+function newLeadView() {
+  const defaultActivity = forceUnlinkedLead ? '' : activeActivityId || (todayEvents().length === 1 ? todayEvents()[0].id : '');
+  return `${heading('Add a Lead', 'A first name is enough. Unknown is a valid channel.', `<button class="btn btn-secondary" data-route="leads">Cancel</button>`)}<div class="form-shell"><form class="panel" id="lead-form"><div class="form-grid"><div class="field"><label for="lead-name">First name / short name</label><input id="lead-name" name="name" required maxlength="40" placeholder="e.g. Demo Lead 01" autocomplete="off"></div><div class="field"><label for="lead-date">Date received</label><input id="lead-date" name="received" type="date" value="${today}" required></div><div class="field"><label for="lead-channel">Channel</label><select id="lead-channel" name="channel">${CHANNELS.map(channel => `<option ${channel === 'Unknown' ? 'selected' : ''}>${channel}</option>`).join('')}</select></div><div class="field"><label for="lead-activity">Activity <span class="muted">· optional</span></label><select id="lead-activity" name="activityId"><option value="">No specific activity</option>${activeConnectorActivities().map(activity => `<option value="${activity.id}" ${activity.id === defaultActivity ? 'selected' : ''}>${escapeHtml(activity.name)} · ${prettyDate(activity.date)}</option>`).join('')}</select></div><div class="field"><label for="lead-home">Home status</label><select id="lead-home" name="homeStatus"><option>Unknown</option><option>Homeowner</option><option>Tenant</option></select></div><div class="field"><label for="appointment-date">Appointment date <span class="muted">· optional</span></label><input id="appointment-date" name="appointmentDate" type="date"><span class="helper">Used when you choose “Save + Appointment set”. Date only.</span></div><div class="field"><label>Generated by</label><input value="${currentUser().name}" disabled></div></div><div class="callout" style="margin-top:16px">The Lead belongs to ${currentUser().name}. Generated By is permanent; Current Owner can be reassigned by an Admin.</div><div class="modal-actions"><button class="btn btn-secondary" type="submit" name="submitMode" value="save">Save Lead</button><button class="btn btn-primary" type="submit" name="submitMode" value="booked">Save + Appointment set</button></div></form></div>`;
+}
+function leadStatus(lead) { const status = appointmentOutcome(lead); return status ? `<span class="status ${statusClass(status)}">${status}</span>` : '<span class="status">No appointment</span>'; }
+function statusClass(value) { return value === 'Sat' ? 'sat' : value === 'Booked' ? 'booked' : value === 'Cancelled' ? 'cancelled' : value.includes('Ghosted') ? 'ghosted' : ''; }
+function leadCard(lead) { const activity = activityById(lead.activityId); const canEdit = currentUser().role === 'Admin' || lead.currentOwnerId === state.currentUserId; const customer = customerOutcome(lead); return `<article class="lead-card"><span class="avatar">${escapeHtml(lead.name.slice(0,1).toUpperCase())}</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))} · Generated by ${userName(lead.generatedByPartnerId || lead.partnerId)}${lead.currentOwnerId && lead.currentOwnerId !== (lead.generatedByPartnerId || lead.partnerId) ? ` · Owner ${userName(lead.currentOwnerId)}` : ''}</p><div class="lead-tags"><span class="status ${statusClass(appointmentOutcome(lead))}">${escapeHtml(progressionLabel(lead))}</span>${customer ? `<span class="status ${outcomeIsCustomer(lead) ? 'customer' : ''}">${escapeHtml(customer)}</span>` : ''}${needsUpdate(lead) ? '<span class="status followup">Needs update</span>' : ''}${lead.becamePartner ? '<span class="badge amber">Partner signed up</span>' : ''}${lead.followUp ? '<span class="status followup">Follow-up</span>' : ''}</div></div><div class="lead-actions">${canEdit ? `<button class="btn btn-secondary btn-sm" data-edit-lead="${lead.id}">Update</button>` : ''}</div></article>`; }
+function leadsView() { const query = state.search.toLowerCase(); const scoped = isConnectorAdmin() && leadScope === 'my' ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId) : selectedLeads(); const leads = scoped.filter(lead => !query || `${lead.name} ${lead.channel} ${customerOutcome(lead)} ${userName(lead.partnerId)}`.toLowerCase().includes(query)); const scopeSwitch = isConnectorAdmin() ? `<div class="filter-row"><button class="filter-chip ${leadScope==='my'?'active':''}" data-lead-scope="my">My Leads</button><button class="filter-chip ${leadScope==='team'?'active':''}" data-lead-scope="team">Team Leads</button></div>` : ''; return `${heading('Leads', 'Update appointment states, customer results and follow-ups.', `<button class="btn btn-primary" data-action="newlead">＋ Add Lead</button>`)}${scopeSwitch}<div class="split-head" style="margin-bottom:12px"><div class="searchbox"><input data-search placeholder="Search Leads" value="${escapeHtml(state.search)}" aria-label="Search Leads"></div><span class="small muted">${leads.length} active Leads</span></div><div class="lead-list">${leads.length ? leads.map(leadCard).join('') : '<div class="empty-state"><strong>No Leads match</strong>Add a Lead or adjust your search.</div>'}</div>`; }
+function leadEditView() {
+  const lead = state.leads.find(item => item.id === activeLeadId); if (!lead || (!hasAccess(lead.connectorId)) || (currentUser().role !== 'Admin' && lead.currentOwnerId !== state.currentUserId)) return `${heading('Lead not available')}<button class="btn btn-secondary" data-route="leads">Back to Leads</button>`;
+  const services = draftServices || latestResult(lead.id)?.services || lead.services || { energy: false, broadband: false, insurance: false, essentials: 0, unlimited: 0 };
+  const preview = commissionFor(services, today);
+  const progression = (lead.progression || []).slice().reverse().map(item => `<span class="status">${escapeHtml(item.stage)} · ${prettyDate(item.date)}</span>`).join(' ');
+  return `${heading(`Update ${escapeHtml(lead.name)}`, `${escapeHtml(contextLine(lead))} · Owner ${userName(lead.currentOwnerId || lead.partnerId)}`, `<button class="btn btn-secondary" data-route="leads">Done</button>`)}<div class="layout-grid"><div class="panel"><div class="section-title" style="margin-top:0">Appointment progression</div><div class="appointment-grid">${[['Booked','▣'],['Sat','✓'],['Cancelled','×'],['Ghosted / No-show','◷']].map(([value,icon]) => `<button type="button" class="choice-card ${appointmentOutcome(lead) === value ? 'active' : ''}" data-set-appointment="${escapeHtml(value)}"><span class="choice-icon">${icon}</span>${value}</button>`).join('')}</div>${historyHas(lead, 'Booked') || lead.appointment === 'Booked' ? `<div class="field" style="margin-top:10px"><label for="appointment-date">Appointment date</label><input type="date" id="appointment-date" data-appointment-date value="${lead.appointmentDate || ''}"><span class="helper">Date only. No appointment time is stored.</span></div>` : ''}<div class="section-title">Recorded progression</div><div class="lead-tags">${progression || '<span class="muted small">Lead sent</span>'}</div><div class="section-title">Outcome</div><div class="appointment-grid">${OUTCOMES.map((value,index) => `<button type="button" class="choice-card ${lead.outcome === value ? 'active' : ''}" data-set-outcome="${escapeHtml(value)}"><span class="choice-icon">${['⌂','↗','◌'][index]}</span>${value}</button>`).join('')}</div><label class="product-choice" style="margin-top:9px"><input type="checkbox" data-set-partner ${lead.becamePartner ? 'checked' : ''}> Became a UW Partner</label><label class="product-choice" style="margin-top:8px"><input type="checkbox" data-set-followup ${lead.followUp ? 'checked' : ''}> Follow-up required</label>${lead.followUp ? `<div class="field" style="margin-top:10px"><label for="review-date">Suggested review date</label><div style="display:flex;gap:7px"><select data-review-timing><option value="">Choose timing</option><option value="1">1 month</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">12 months</option><option value="none">No date</option></select><input type="date" id="review-date" value="${lead.reviewDate || ''}" data-review-date aria-label="Review date"></div></div>` : ''}<div class="section-title">Customer products</div><div class="helper">Changes are a draft until saved. Each saved result keeps its own rule version and amounts.</div><div class="product-grid" style="margin-top:9px">${[['energy','Energy'],['broadband','Broadband'],['insurance','Insurance']].map(([key,label]) => `<label class="product-choice"><input type="checkbox" data-product="${key}" ${services[key] ? 'checked' : ''}> ${label}</label>`).join('')}</div><div class="sim-row"><div><strong>Essentials SIM · £6</strong><small>Qualifying count</small></div><div class="segmented">${[0,1,2].map(value => `<button type="button" class="${services.essentials === value ? 'active' : ''}" data-sim="essentials:${value}">${value}</button>`).join('')}</div></div><div class="sim-row"><div><strong>Unlimited SIM · £13</strong><small>Qualifying count</small></div><div class="segmented">${[0,1,2].map(value => `<button type="button" class="${services.unlimited === value ? 'active' : ''}" data-sim="unlimited:${value}">${value}</button>`).join('')}</div></div><div class="money-pair"><div class="money-box"><strong>${fmtMoney(preview.connector)}</strong><span>Connector income · test</span></div><div class="money-box"><strong>${fmtMoney(preview.partner)}</strong><span>Partner earnings · private</span></div></div><div id="rule-match" class="helper" style="text-align:center;margin-top:7px">${preview.version === 'UNCONFIGURED' ? 'No matching test rule' : `Test rule ${escapeHtml(preview.version)} · not yet saved`}</div><div class="section-title">History</div><div class="activity-list">${(lead.history || []).slice().reverse().map(item => `<div class="activity-row"><div class="activity-symbol">◉</div><div class="activity-copy"><strong>${escapeHtml(item.action)}</strong><small>${prettyDate(item.date)}</small></div></div>`).join('') || '<span class="small muted">No updates yet.</span>'}</div><div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-secondary" data-action="archive-lead">Archive Lead</button><button class="btn btn-pink" style="flex:1" data-action="save-lead">Save Result</button></div></div><div><div class="panel"><div class="panel-head"><div><h2>Lead details</h2><p>Generated by ${userName(lead.generatedByPartnerId || lead.partnerId)}</p></div></div><div class="activity-list"><div class="activity-row"><span class="activity-symbol">◉</span><div class="activity-copy"><strong>${escapeHtml(lead.name)}</strong><small>${lead.homeStatus || 'Unknown'} · Current owner ${userName(lead.currentOwnerId || lead.partnerId)}</small></div></div><div class="activity-row"><span class="activity-symbol">▦</span><div class="activity-copy"><strong>${escapeHtml(activityById(lead.activityId)?.name || 'No linked activity')}</strong><small>${prettyDate(lead.received)}</small></div></div></div></div>${currentUser().role === 'Admin' ? `<div class="panel" style="margin-top:12px"><div class="panel-head"><div><h2>Reassign owner</h2><p>Historical Generated By remains ${userName(lead.generatedByPartnerId || lead.partnerId)}</p></div></div><select data-owner-select>${state.users.filter(user => user.active).map(user => `<option value="${user.id}" ${user.id === (lead.currentOwnerId || lead.partnerId) ? 'selected' : ''}>${user.name}</option>`).join('')}</select></div>` : ''}</div></div>`;
+}
+function inboxView() {
+  const leads = needsUpdateLeads(selectedLeads());
+  return `${heading('Action Inbox', 'Incomplete progression lives here. Deliberate future follow-ups stay separate.', `<span class="badge pink">${leads.length} needs update</span>`)}<div class="lead-list">${leads.length ? leads.map(lead => `<article class="lead-card"><span class="activity-symbol">!</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))}${lead.appointmentDate ? ` · Appointment ${prettyDate(lead.appointmentDate)}` : ''}</p><div class="lead-tags"><span class="status booked">${escapeHtml(progressionLabel(lead))}</span><span class="status followup">Needs update</span></div></div><div class="lead-actions"><button class="btn btn-soft btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Sat">Sat</button><button class="btn btn-secondary btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Cancelled">Cancelled</button><button class="btn btn-secondary btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Ghosted / No-show">Ghosted</button></div></article>`).join('') : '<div class="empty-state"><strong>Inbox zero</strong>You are up to date.</div>'}</div>`;
+}
+function followupsView(activityId = '') {
+  const all = selectedLeads().filter(lead => lead.followUp && (!activityId || lead.activityId === activityId));
+  let leads = all;
+  if (state.followFilter === 'No for now') leads = all.filter(lead => lead.outcome === 'No for now');
+  if (state.followFilter === 'Cancelled') leads = all.filter(lead => lead.appointment === 'Cancelled');
+  if (state.followFilter === 'Ghosted') leads = all.filter(lead => lead.appointment.includes('Ghosted'));
+  if (state.followFilter === 'Due / overdue') leads = all.filter(lead => !lead.reviewDate || lead.reviewDate <= today);
+  const dueToday = all.filter(lead => lead.reviewDate === today).length; const overdue = all.filter(lead => lead.reviewDate && lead.reviewDate < today).length; const upcoming = all.filter(lead => lead.reviewDate && lead.reviewDate > today).length;
+  return `${heading(activityId ? `Follow-ups from ${escapeHtml(activityById(activityId)?.name || 'this event')}` : 'Follow-up queue', 'Deliberate next steps stay separate from incomplete work.') }<div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">${metricCard('Overdue', overdue, 'var(--pink)')}${metricCard('Due today', dueToday, 'var(--orange)')}${metricCard('Upcoming', upcoming, 'var(--green)')}</div><div class="filter-row">${['All','No for now','Cancelled','Ghosted','Due / overdue'].map(filter => `<button class="filter-chip ${state.followFilter === filter ? 'active' : ''}" data-follow-filter="${filter}">${filter}${filter === 'All' ? ` (${all.length})` : ''}</button>`).join('')}</div><div class="lead-list">${leads.length ? leads.sort((a,b) => (a.reviewDate || '9999').localeCompare(b.reviewDate || '9999')).map(lead => `<article class="lead-card"><span class="activity-symbol ${lead.appointment === 'Cancelled' ? 'cancelled' : ''}">${lead.appointment === 'Cancelled' ? '×' : lead.appointment.includes('Ghosted') ? '◷' : '⌛'}</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))} · Review ${lead.reviewDate ? prettyDate(lead.reviewDate) : 'no date'}</p><div class="lead-tags">${leadStatus(lead)}${lead.outcome ? `<span class="status">${escapeHtml(lead.outcome)}</span>` : ''}</div></div><button class="btn btn-secondary btn-sm" data-edit-lead="${lead.id}">Open</button></article>`).join('') : '<div class="empty-state"><strong>Nothing in this view</strong>Follow-ups will appear here when a Lead needs another look.</div>'}</div>`;
+}
+function followupMetric(label, value, filter, color) { return `<button type="button" class="metric-card" data-follow-summary="${filter}" style="--color:${color};--tint:#f0eafa;text-align:left"><div class="metric-label">${label}</div><div class="metric-value">${value}</div><div class="metric-note">Tap to view</div></button>`; }
+function followupsView(activityId = '') { const all = followUpLeads(selectedLeads()).filter(lead => !activityId || lead.activityId === activityId); const overdue = all.filter(lead => lead.reviewDate && lead.reviewDate < today).length; const dueToday = all.filter(lead => lead.reviewDate === today).length; const upcoming = all.filter(lead => !lead.reviewDate || lead.reviewDate > today).length; let leads = all; if (state.followFilter === 'Overdue') leads = leads.filter(lead => lead.reviewDate && lead.reviewDate < today); if (state.followFilter === 'Due today') leads = leads.filter(lead => lead.reviewDate === today); if (state.followFilter === 'Upcoming') leads = leads.filter(lead => !lead.reviewDate || lead.reviewDate > today); if (state.followFilter === 'No for now') leads = leads.filter(lead => customerOutcome(lead) === 'No for now' || partnerOutcome(lead) === 'No for now'); if (state.followFilter === 'Cancelled') leads = leads.filter(lead => appointmentOutcome(lead) === 'Cancelled'); if (state.followFilter === 'Ghosted') leads = leads.filter(lead => appointmentOutcome(lead) === 'Ghosted / No-show'); if (state.followFilter === 'Due / overdue') leads = leads.filter(lead => lead.reviewDate && lead.reviewDate <= today); return `${heading(activityId ? `Follow-ups from ${escapeHtml(activityById(activityId)?.name || 'this event')}` : 'Follow-up queue', 'Deliberate next steps stay separate from incomplete work.') }<div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">${followupMetric('Overdue', overdue, 'Overdue', 'var(--pink)')}${followupMetric('Due today', dueToday, 'Due today', 'var(--orange)')}${followupMetric('Upcoming', upcoming, 'Upcoming', 'var(--green)')}</div><div class="filter-row">${['All','No for now','Cancelled','Ghosted','Due / overdue'].map(filter => `<button class="filter-chip ${state.followFilter === filter ? 'active' : ''}" data-follow-filter="${filter}">${filter}${filter === 'All' ? ` (${all.length})` : ''}</button>`).join('')}</div><div class="lead-list">${leads.length ? leads.sort((a,b) => (a.reviewDate || '9999').localeCompare(b.reviewDate || '9999')).map(lead => `<article class="lead-card"><span class="activity-symbol">⌛</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))} · ${customerOutcome(lead) || 'Customer pending'} · ${partnerOutcome(lead) || 'Partner pending'} · ${lead.followUpReason || 'Follow-up'} · ${lead.reviewDate ? prettyDate(lead.reviewDate) : 'No date'}</p></div><button class="btn btn-secondary btn-sm" data-edit-lead="${lead.id}">Open</button></article>`).join('') : '<div class="empty-state"><strong>Nothing in this view</strong>Follow-ups will appear here when a Lead needs another look.</div>'}</div>`; }
+function inboxView() { const base = isConnectorAdmin() && leadScope === 'my' ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId) : selectedLeads(); const leads = needsUpdateLeads(base); const scopeSwitch = isConnectorAdmin() ? `<div class="filter-row"><button class="filter-chip ${leadScope==='my'?'active':''}" data-lead-scope="my">My Action Inbox</button><button class="filter-chip ${leadScope==='team'?'active':''}" data-lead-scope="team">Team Action Inbox</button></div>` : ''; return `${heading('Action Inbox', 'Only genuinely incomplete progression appears here.', `<span class="badge pink">${leads.length} needs update</span>`)}${scopeSwitch}<div class="lead-list">${leads.length ? leads.map(lead => `<article class="lead-card"><span class="activity-symbol">!</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))}</p><div class="lead-tags"><span class="status booked">${appointmentOutcome(lead)==='Sat' ? 'Appointment sat - result needed' : escapeHtml(displayProgression(lead))}</span></div></div><div class="lead-actions"><button class="btn btn-soft btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Sat">Mark Sat</button><button class="btn btn-secondary btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Cancelled">Mark Cancelled</button><button class="btn btn-secondary btn-sm" data-inbox-lead="${lead.id}" data-quick-outcome="Ghosted / No-show">Mark Ghosted</button></div></article>`).join('') : '<div class="empty-state"><strong>Inbox zero</strong>You are up to date.</div>'}</div>`; }
+
+function eventDetailView() {
+  const activity = activityById(activeActivityId); if (!activity) return `${heading('Event not found')}<button class="btn btn-secondary" data-route="activities">Back to activities</button>`;
+  const mine = activityLeads(activity.id, state.currentUserId), team = activityLeads(activity.id);
+  const shown = eventTab === 'my' ? mine : team;
+  const m = metrics(team, eventTab === 'my' ? state.currentUserId : '');
+  const teamForms = state.stats.filter(stat => stat.activityId === activity.id).reduce((sum, stat) => sum + stat.forms20K, 0);
+  const myForms = statFor(activity.id, state.currentUserId);
+  return `${heading(escapeHtml(activity.name), `${prettyDate(activity.date)} · ${escapeHtml(activity.channel)}`, `<button class="btn btn-primary" data-action="newlead" data-activity="${activity.id}">＋ Add Lead</button>`)}<div class="panel"><div class="split-head"><div><div class="event-title">${escapeHtml(activity.name)}</div><div class="event-sub">${prettyDate(activity.date)} · ${escapeHtml(activity.channel)}</div></div><span class="badge green">${teamForms} team 20K forms</span></div><div class="tab-bar" style="margin-top:13px"><button class="tab-btn ${eventTab === 'my' ? 'active' : ''}" data-event-tab="my">My Results · ${currentUser().name}</button><button class="tab-btn ${eventTab === 'team' ? 'active' : ''}" data-event-tab="team">Team Results</button></div><div class="progress-grid">${metricCard(eventTab === 'my' ? 'My 20K forms' : 'Team 20K forms', eventTab === 'my' ? myForms : teamForms, 'var(--green)', '', '#e3f6ec')}${metricCard('My / team Leads', shown.length, 'var(--blue)')}${metricCard('Appointments booked', m.booked, 'var(--purple-2)')}${metricCard('Appointments sat', m.sat, 'var(--blue)')}${metricCard('Customers', m.customers, 'var(--pink)')}${metricCard('Services', sumServices(shown), 'var(--orange)')}${metricCard('Connector income', fmtMoney(shown.reduce((sum, lead) => sum + (resultFor(lead).connectorCommission || 0), 0)), 'var(--green)', 'TEST ONLY')}${metricCard('Partner earnings', fmtMoney(shown.reduce((sum, lead) => sum + (resultFor(lead).partnerCommission || 0), 0)), 'var(--purple-2)', 'Private · test')}${metricCard('Partners generated', shown.filter(lead => lead.becamePartner).length, 'var(--orange)')}</div><div class="section-title">${eventTab === 'my' ? 'My Leads' : 'Event Leads'}</div><div class="lead-list">${shown.length ? shown.map(leadCard).join('') : '<div class="empty-state">No Leads linked to this activity yet.</div>'}</div><div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap"><button class="btn btn-secondary" data-route="leads">View My Leads</button><button class="btn btn-soft" data-follow-event="${activity.id}">◷ Follow-ups from this event (${team.filter(lead => lead.followUp).length})</button><button class="btn btn-secondary" data-edit-activity="${activity.id}">Update my 20K count</button></div></div>`;
+}
+function conversionLine(label, numerator, denominator, fill) { const percent = denominator ? Math.round(numerator / denominator * 100) : 0; return `<div class="funnel-row"><span>${label}</span><div class="funnel-track"><div class="funnel-fill" style="width:${percent}%;--fill:${fill}"></div></div><span class="funnel-count">${numerator}/${denominator}</span></div>`; }
+function progressView() { const leads = periodLeads(selectedLeads()).filter(lead => lead.partnerId === state.currentUserId); const m = metrics(leads, state.currentUserId); return `${heading(`${currentUser().name}'s progress`, 'Your own activity and Lead results for the selected period.')}${metricsGrid(m)}<div class="layout-grid"><div class="panel"><div class="panel-head"><div><h2>Conversion funnel</h2><p>Counts first; small samples can move quickly</p></div></div><div class="funnel-list">${conversionLine('20K → Lead', m.leads, m.forms, '#45876c')}${conversionLine('Lead → Appointment', m.booked, m.leads, '#456bc9')}${conversionLine('Appointment → Sat', m.sat, m.booked, '#62409a')}${conversionLine('Sat → Customer', m.customers, m.sat, '#dc478e')}</div><div class="callout" style="margin-top:15px">${m.sat && m.customers ? `${m.customers} of ${m.sat} sat appointments have become customers.` : 'Your next results will appear as activity and outcomes are recorded.'}</div></div><div class="panel"><div class="panel-head"><div><h2>At a glance</h2><p>Recorded from your own Leads</p></div></div><div class="progress-grid">${metricCard('Products', m.services, 'var(--orange)')}${metricCard('Partner earnings', fmtMoney(m.earnings), 'var(--purple-2)', 'Private · test')}${metricCard('New Partners', m.partners, 'var(--orange)')}${metricCard('Connector income', fmtMoney(m.income), 'var(--green)', 'Test rules')}</div><div class="achievement">✦ <span>${m.leads ? `You have recorded ${m.leads} Leads in this period.` : 'Your first Lead is ready to be recorded.'}</span></div></div></div>`; }
+function conversionSummary(numerator, denominator) { if (!denominator) return '—'; const ratio = `${numerator}/${denominator}`; return denominator < 5 ? ratio : `${ratio} · ${Math.round(numerator / denominator * 100)}%`; }
+function teamReport(leads) { const followups = leads.filter(lead => lead.followUp).length; const due = leads.filter(lead => lead.followUp && lead.reviewDate && lead.reviewDate <= today).length; return `<div class="panel"><div class="panel-head"><div><h2>Team performance</h2><p>Selected Connector · ${state.period.toLowerCase()} · internal view</p></div></div><div class="table-wrap"><table><thead><tr><th>Partner</th><th>Leads</th><th>Set</th><th>Sat</th><th>Customers</th><th>Partners</th><th>Needs update</th></tr></thead><tbody>${state.users.filter(user => user.active).map(user => { const m = metrics(leads, user.id); return `<tr><td><div class="person-cell"><span class="mini-avatar">${user.name.slice(0,1)}</span>${user.name}</div></td><td>${m.leads}</td><td>${m.booked}</td><td>${m.sat}</td><td>${m.customers}</td><td>${m.partners}</td><td>${m.needsUpdate}</td></tr>`; }).join('')}</tbody></table></div><p class="helper" style="margin:11px 0 0">Follow-ups scheduled: ${followups} · Due now: ${due}. Follow-ups stay separate from Needs update.</p></div>`; }
+function channelReport(leads, group = 'channel') {
+  const groups = new Map();
+  for (const lead of leads) { const activity = activityById(lead.activityId); const name = group === 'channel' ? (lead.channel || 'Unknown') : (activity?.name || 'No specific activity'); if (!groups.has(name)) groups.set(name, []); groups.get(name).push(lead); }
+  const rows = [...groups.entries()].map(([name, list]) => ({ name, count: list.length, booked: list.filter(item => ['Booked','Sat'].includes(item.appointment)).length, sat: list.filter(item => item.appointment === 'Sat').length, customers: list.filter(outcomeIsCustomer).length, income: list.reduce((sum,item) => sum + (item.connectorCommission || 0),0), forms: group === 'activity' ? state.stats.filter(stat => activityById(stat.activityId)?.name === name).reduce((sum,stat) => sum + stat.forms20K,0) : 0 }));
+  const max = Math.max(1, ...rows.map(row => row.count));
+  return `<div class="panel"><div class="tab-bar"><button class="tab-btn ${group === 'channel' ? 'active' : ''}" data-report-group="channel">By Channel</button><button class="tab-btn ${group === 'activity' ? 'active' : ''}" data-report-group="activity">By Activity</button></div><div class="table-wrap"><table><thead><tr><th>${group === 'channel' ? 'Channel' : 'Activity'}</th><th>20K</th><th>Leads</th><th>Booked</th><th>Sat</th><th>Customers</th><th>Connector income</th><th>Sat → customer</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.name)}</td><td>${row.forms || '—'}</td><td>${row.count}</td><td>${row.booked}</td><td>${row.sat}</td><td>${row.customers}</td><td>${fmtMoney(row.income)}</td><td>${conversionSummary(row.customers,row.sat)}</td></tr>`).join('') || '<tr><td colspan="8">No attributed Leads in this period.</td></tr>'}</tbody></table></div><div class="section-title">Leads by ${group}</div><div class="source-bars">${rows.map(row => `<div class="source-line"><span>${escapeHtml(row.name)}</span><div class="funnel-track"><div class="funnel-fill" style="width:${Math.round(row.count / max * 100)}%"></div></div><strong>${row.count}</strong></div>`).join('')}</div></div>`;
+}
+function trendReport() {
+  const now = new Date(); const months = Array.from({ length: 6 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - 5 + index, 1));
+  const data = months.map(month => { const key = month.toISOString().slice(0,7); const cohort = selectedLeads().filter(lead => lead.received.slice(0,7) === key); const results = selectedLeads().filter(lead => (latestResult(lead.id)?.resultDate || lead.resultDate || lead.received).slice(0,7) === key); const acts = state.activities.filter(activity => activity.connectorId === state.selectedConnectorId && activity.date.slice(0,7) === key); return { month, key, leads: cohort.length, appointments: cohort.filter(lead => historyHas(lead,'Booked') || ['Booked','Sat'].includes(lead.appointment)).length, customers: results.filter(outcomeIsCustomer).length, income: results.reduce((sum,lead) => sum + (resultFor(lead).connectorCommission || 0),0), forms: state.stats.filter(stat => acts.some(activity => activity.id === stat.activityId)).reduce((sum,stat) => sum + stat.forms20K,0) }; });
+  const maxLead = Math.max(1,...data.map(row => row.leads)); const maxIncome = Math.max(1,...data.map(row => row.income));
+  return `<div class="panel"><div class="panel-head"><div><h2>Monthly trends</h2><p>Results recorded during each calendar month</p></div><div class="chart-legend"><span><i class="legend-dot" style="background:#b89cda"></i>Leads</span><span><i class="legend-dot" style="background:#47a779"></i>Income</span></div></div><div class="chart">${data.map(row => `<div class="chart-col" title="${row.leads} Leads · ${fmtMoney(row.income)} income"><div class="chart-bar" style="height:${Math.max(3,row.leads / maxLead * 85)}%"></div><div class="chart-bar alt" style="height:${Math.max(3,row.income / maxIncome * 85)}%"></div></div>`).join('')}</div><div class="chart-months">${data.map(row => `<span>${row.month.toLocaleDateString('en-GB',{month:'short'})}</span>`).join('')}</div><div class="table-wrap" style="margin-top:17px"><table><thead><tr><th>Month</th><th>20K forms</th><th>Leads</th><th>Appointments</th><th>Customers</th><th>Connector income</th></tr></thead><tbody>${data.map(row => `<tr><td>${row.month.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</td><td>${row.forms}</td><td>${row.leads}</td><td>${row.appointments}</td><td>${row.customers}</td><td>${fmtMoney(row.income)}</td></tr>`).join('')}</tbody></table></div></div>`;
+}
+function sharedReport() {
+  const leads = periodLeads(selectedLeads()); const m = metrics(leads); const activities = activeConnectorActivities().map(activity => ({ activity, count: activityLeads(activity.id).length })).sort((a,b) => b.count - a.count).slice(0,3);
+  const channelTotals = new Map(); for (const lead of leads) channelTotals.set(lead.channel || 'Unknown', (channelTotals.get(lead.channel || 'Unknown') || 0) + 1);
+  const safe = { connector: connector()?.name, period: state.period, forms20K: m.forms, leads: m.leads, appointments: m.booked, customers: m.customers, services: m.services, connectorIncome: m.income, newPartners: m.partners, channels: [...channelTotals.entries()].map(([channel,count]) => ({ channel,count })), activities: activities.map(item => ({ name: item.activity.name, leads: item.count })) };
+  return `<div class="report-preview"><div class="split-head"><div style="display:flex;align-items:center;gap:11px"><div class="connector-logo">${logoMarkup(connector())}</div><div><div class="eyebrow">Shared Connector report · read only</div><h2 style="font:800 18px Manrope;margin:0">${escapeHtml(safe.connector)} Connector Report</h2><p class="small muted">${state.period}</p></div></div><button class="btn btn-primary" data-action="share-report">↗ Share this report</button></div><div class="callout" style="margin:14px 0">Aggregate results only. No Lead names, private Partner earnings or personal details are included.</div><div class="metric-grid" style="grid-template-columns:repeat(4,1fr)">${metricCard('20K forms',safe.forms20K,'var(--green)')}${metricCard('Leads',safe.leads,'var(--blue)')}${metricCard('Appointments',safe.appointments,'var(--purple-2)')}${metricCard('Customers',safe.customers,'var(--pink)')}${metricCard('Services',safe.services,'var(--orange)')}${metricCard('Connector income',fmtMoney(safe.connectorIncome),'var(--green)')}${metricCard('New Partners',safe.newPartners,'var(--orange)')}</div><div class="layout-grid"><div><div class="section-title">Where Leads came from</div><div class="source-bars">${safe.channels.map(item => `<div class="source-line"><span>${escapeHtml(item.channel)}</span><div class="funnel-track"><div class="funnel-fill" style="width:${Math.round(item.count / Math.max(1,...safe.channels.map(row => row.count)) * 100)}%"></div></div><strong>${item.count}</strong></div>`).join('') || 'No Leads in this period.'}</div></div><div><div class="section-title">Activity highlights</div>${safe.activities.map(item => `<div class="activity-row"><span class="activity-symbol">▦</span><div class="activity-copy"><strong>${escapeHtml(item.name)}</strong><small>${item.leads} Leads</small></div></div>`).join('') || '<span class="small muted">No activities yet.</span>'}</div></div></div>`;
+}
+function commissionRulesView() { return `<div class="panel"><div class="panel-head"><div><h2>Commission lookup</h2><p>Central CRM calculation · CRM-BANDS-2</p></div></div><div class="callout" style="margin-bottom:13px">Energy, Broadband and Boiler/Home Cover each count as one. Any number of Essentials SIMs counts as one; Unlimited SIMs count as one each, capped at two. The qualifying service total is capped at four.</div><div class="table-wrap"><table><thead><tr><th>Qualifying services</th><th>Partner earnings</th><th>Connector income</th></tr></thead><tbody>${COMMISSION_BANDS.map((amount,count) => `<tr><td>${count}</td><td>${fmtMoney(amount)}</td><td>${fmtMoney(amount * 0.5)}</td></tr>`).join('')}</tbody></table></div><p class="helper">Legacy commission snapshots remain in saved records for history. New calculations use this lookup; Connector income is 50% of Partner earnings.</p></div>`; }
+function reportsView() {
+  const tabs = [['team','Team performance'],['channels','Channels & activities'],['trends','Monthly trends'],['shared','Shared report'],...(isConnectorAdmin() ? [['rules','Commission rules']] : [])];
+  const leads = periodLeads(selectedLeads());
+  let view = state.reportTab === 'channels' ? channelReport(leads, state.reportGroup || 'channel') : state.reportTab === 'trends' ? trendReport() : state.reportTab === 'shared' ? sharedReport() : state.reportTab === 'rules' && isConnectorAdmin() ? commissionRulesView() : teamReport(leads);
+  return `${heading('Detailed Reports', 'Internal results help the team learn what to repeat.', `<button class="btn btn-secondary" data-route="progress">‹ Back to Reports</button><select class="period-select" data-period>${periods.map(period => `<option ${period === state.period ? 'selected' : ''}>${period}</option>`).join('')}</select>`)}<div class="tab-bar">${tabs.map(([id,label]) => `<button class="tab-btn ${state.reportTab === id ? 'active' : ''}" data-report-tab="${id}">${label}</button>`).join('')}</div>${view}`;
+}
+function connectorView() {
+  const admin = isConnectorAdmin();
+  const allowed = state.connectors.filter(item => state.access.some(access => access.connectorId === item.id && access.userId === state.currentUserId));
+  const portfolio = allowed.map(item => {
+    const leads = periodLeads(state.leads.filter(lead => lead.connectorId === item.id && !lead.archived));
+    return { item, leads, leadsCount: leads.length, booked: leads.filter(lead => ['Booked','Sat'].includes(lead.appointment)).length, sat: leads.filter(lead => lead.appointment === 'Sat').length, customers: leads.filter(outcomeIsCustomer).length, partners: leads.filter(lead => lead.becamePartner).length, income: leads.reduce((sum, lead) => sum + (resultFor(lead).connectorCommission || 0), 0) };
+  });
+  const total = portfolio.reduce((sum, row) => ({ leads: sum.leads + row.leadsCount, booked: sum.booked + row.booked, sat: sum.sat + row.sat, customers: sum.customers + row.customers, partners: sum.partners + row.partners, income: sum.income + row.income }), { leads: 0, booked: 0, sat: 0, customers: 0, partners: 0, income: 0 });
+  return `${heading('Your Connectors', 'Only Connectors with access granted to you are shown.', admin ? '<button class="btn btn-primary" data-action="new-connector">＋ Add New Connector</button>' : '')}${allowed.length > 1 ? `<div class="panel" style="margin-bottom:14px"><div class="panel-head"><div><h2>Portfolio snapshot</h2><p>${allowed.length} active Connectors · ${state.period.toLowerCase()}</p></div></div><div class="metric-grid">${metricCard('Active Connectors',allowed.length,'var(--purple-2)')}${metricCard('Leads',total.leads,'var(--blue)')}${metricCard('Appointments',total.booked,'var(--purple-2)')}${metricCard('Sat',total.sat,'var(--blue)')}${metricCard('Customers',total.customers,'var(--pink)')}${metricCard('Connector income',fmtMoney(total.income),'var(--green)')}</div></div>` : ''}<div class="connector-list">${portfolio.map(row => `<article class="connector-card"><div class="connector-logo">${logoMarkup(row.item)}</div><div class="connector-meta"><strong>${escapeHtml(row.item.name)}</strong><span>${row.item.code} · ${row.leadsCount} Leads · ${row.customers} customers · ${fmtMoney(row.income)} test income</span></div><span class="badge green">${row.item.id === state.selectedConnectorId ? 'Current' : 'Active'}</span>${admin ? `<button class="btn btn-secondary btn-sm" data-edit-connector="${row.item.id}">Edit</button>` : ''}<button class="btn btn-soft btn-sm" data-select-connector="${row.item.id}" aria-label="Open ${escapeHtml(row.item.name)}">Open workspace →</button></article>`).join('')}</div>${admin ? `<div class="panel" style="margin-top:17px"><div class="panel-head"><div><h2>Partner access</h2><p>Cloud access permissions checked on every server request</p></div></div><div class="table-wrap"><table><thead><tr><th>Connector</th><th>Partner</th><th>Access role</th><th>Access</th></tr></thead><tbody>${state.access.filter(access => allowed.some(item => item.id === access.connectorId)).map(access => `<tr><td>${escapeHtml(connector(access.connectorId)?.name || '')}</td><td>${userName(access.userId)}</td><td>${access.role}</td><td><span class="badge green">Granted</span></td></tr>`).join('')}</tbody></table></div></div>` : ''}`;
+}
+function cloudConnectorView() {
+  const html = connectorView();
+  if (!cloudCrmReady || !isConnectorAdmin()) return html;
+  return `${html}<section class="panel"><h2>Grant Connector access</h2><p>Use an existing Partner ID from the shared Partner directory. CAT checks this Connector grant on every cloud request.</p><form id="cloud-connector-access-form"><div class="form-grid"><label class="field">Partner ID<input name="partnerId" autocomplete="off" maxlength="60" required placeholder="Existing Companion Partner ID"></label><label class="field">Access role<select name="role"><option value="Editor">Partner</option><option value="Admin">Connector Admin</option></select></label></div><div class="modal-actions"><button class="btn btn-primary" type="submit">Grant access</button></div></form></section>`;
+}
+function eventDetailView() {
+  const activity = activityById(activeActivityId); if (!activity) return `${heading('Event not found')}<button class="btn btn-secondary" data-route="activities">Back to activities</button>`;
+  const mine = activityLeads(activity.id, state.currentUserId), team = activityLeads(activity.id); const base = eventTab === 'my' ? mine : team;
+  const shown = eventFilter === 'set' ? base.filter(lead => historyHas(lead,'Booked') || ['Booked','Sat'].includes(lead.appointment)) : eventFilter === 'sat' ? base.filter(lead => historyHas(lead,'Sat') || lead.appointment === 'Sat') : eventFilter === 'customer' ? base.filter(outcomeIsCustomer) : eventFilter === 'partner' ? base.filter(lead => partnerOutcome(lead) === 'Became a UW Partner' || lead.becamePartner) : base;
+  const m = metrics(base, eventTab === 'my' ? state.currentUserId : ''); const teamForms = state.stats.filter(stat => stat.activityId === activity.id).reduce((sum, stat) => sum + stat.forms20K, 0); const myForms = statFor(activity.id, state.currentUserId);
+  const outstanding = base.filter(needsUpdate);
+  return `${heading(escapeHtml(activity.name), `${prettyDate(activity.date)} · ${escapeHtml(activity.channel)}`, `<button class="btn btn-primary" data-action="newlead" data-activity="${activity.id}">＋ Add Lead</button>`)}<div class="panel"><div class="split-head"><div><div class="event-title">${escapeHtml(activity.name)}</div><div class="event-sub">${prettyDate(activity.date)} · ${escapeHtml(activity.channel)}</div></div><span class="badge green">${teamForms} team 20K forms</span></div><div class="tab-bar" style="margin-top:13px"><button class="tab-btn ${eventTab === 'my' ? 'active' : ''}" data-event-tab="my">My Results · ${currentUser().name}</button><button class="tab-btn ${eventTab === 'team' ? 'active' : ''}" data-event-tab="team">Team Results</button></div><div class="progress-grid">${eventMetricCard(eventTab === 'my' ? 'My 20K forms' : 'Team 20K forms', eventTab === 'my' ? myForms : teamForms, 'forms', 'var(--green)')}${eventMetricCard('Leads', base.length, 'all', 'var(--blue)')}${eventMetricCard('Set', m.booked, 'set', 'var(--purple-2)')}${eventMetricCard('Sat', m.sat, 'sat', 'var(--blue)')}${eventMetricCard('Customers', m.customers, 'customer', 'var(--pink)')}${eventMetricCard('Partners', m.partners, 'partner', 'var(--orange)')}${metricCard('Connector income', fmtMoney(base.reduce((sum, lead) => sum + (resultFor(lead).connectorCommission || 0), 0)), 'var(--green)', 'TEST ONLY')}${metricCard('Partner earnings', fmtMoney(base.reduce((sum, lead) => sum + (resultFor(lead).partnerCommission || 0), 0)), 'var(--purple-2)', 'Private · test')}</div><div class="section-title">${eventFilter === 'all' ? 'Leads from this event' : `Filtered: ${eventFilter}`}</div><div class="lead-list">${shown.length ? shown.map(leadCard).join('') : '<div class="empty-state">No Leads in this view.</div>'}</div>${outstanding.length ? `<div class="section-title" style="margin-top:17px">Still outstanding from this event</div><div class="lead-list">${outstanding.map(lead => `<div class="activity-row"><div class="activity-symbol">!</div><div class="activity-copy"><strong>${escapeHtml(lead.name)}</strong><small>${escapeHtml(displayProgression(lead))} · ${needsUpdate(lead) && appointmentOutcome(lead)==='Sat' ? 'Appointment sat - result needed' : 'Appointment outcome needed'}</small></div></div>`).join('')}</div>` : ''}<div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap"><button class="btn btn-secondary" data-route="leads">View Leads</button><button class="btn btn-soft" data-event-forms="${activity.id}">20K contribution breakdown</button><button class="btn btn-secondary" data-edit-activity="${activity.id}">Update my 20K count</button></div></div>`;
+}
+
+// Focused v0.3 Lead workspace: reveal only the next relevant decision.
+function leadEditView() {
+  const lead = state.leads.find(item => item.id === activeLeadId);
+  if (!lead || !hasAccess(lead.connectorId) || (!isConnectorAdmin(lead.connectorId) && (lead.currentOwnerId || lead.partnerId) !== state.currentUserId)) return `${heading('Lead not available')}<button class="btn btn-secondary" data-route="leads">Back to Leads</button>`;
+  const set = historyHas(lead, 'Booked') || lead.appointment === 'Booked' || ['Sat','Cancelled','Ghosted / No-show'].includes(appointmentOutcome(lead));
+  const sat = appointmentOutcome(lead) === 'Sat';
+  const customer = customerOutcome(lead);
+  const partner = partnerOutcome(lead);
+  const showResults = sat;
+  const services = draftServices || latestResult(lead.id)?.services || lead.services || { energy:false, broadband:false, insurance:false, essentials:0, unlimited:0 };
+  const preview = commissionFor(services, today);
+  const history = (lead.history || []).slice().reverse();
+  const last = history[0];
+  return `${heading(`Update ${escapeHtml(lead.name)}`, `${escapeHtml(contextLine(lead))} · Generated by ${userName(lead.generatedByPartnerId || lead.partnerId)}`, `<button class="btn btn-secondary" data-route="leads">Done</button>`)}<div class="layout-grid"><div class="panel"><div class="section-title" style="margin-top:0">Lead progression</div><div class="appointment-grid"><button type="button" class="choice-card ${progressionLabel(lead) === 'Lead sent' ? 'active' : ''}" data-set-progress="Lead sent">Lead sent</button><button type="button" class="choice-card ${progressionLabel(lead) === 'Quote sent' ? 'active' : ''}" data-set-progress="Quote sent">Quote sent</button><button type="button" class="choice-card ${set ? 'active' : ''}" data-set-appointment="Booked">Appointment set</button></div>${set ? `<div class="field" style="margin-top:12px"><label for="appointment-date">Appointment date</label><input type="date" id="appointment-date" data-appointment-date value="${lead.appointmentDate || ''}"><span class="helper">Date only. No appointment time is stored.</span></div><div class="section-title">Appointment outcome</div><div class="appointment-grid"><button type="button" class="choice-card ${appointmentOutcome(lead)==='Sat'?'active':''}" data-set-appointment="Sat">Appointment sat</button><button type="button" class="choice-card ${appointmentOutcome(lead)==='Cancelled'?'active':''}" data-set-appointment="Cancelled">Cancelled</button><button type="button" class="choice-card ${appointmentOutcome(lead)==='Ghosted / No-show'?'active':''}" data-set-appointment="Ghosted / No-show">Ghosted / No-show</button></div>` : ''}${set && !appointmentOutcome(lead) ? '<div class="callout" style="margin-top:12px">Set the appointment date, then record what happened after the appointment.</div>' : ''}${sat ? `<div class="section-title">Customer result</div><div class="appointment-grid">${CUSTOMER_OUTCOMES.map(value => `<button type="button" class="choice-card ${customer === value ? 'active' : ''}" data-set-customer="${escapeHtml(value)}">${value}</button>`).join('')}</div><div class="section-title">Partner result</div><div class="appointment-grid">${PARTNER_OUTCOMES.map(value => `<button type="button" class="choice-card ${partner === value ? 'active' : ''}" data-set-partner-result="${escapeHtml(value)}">${value}</button>`).join('')}</div>${(customer === 'No for now' || partner === 'No for now') ? `<div class="callout" style="margin-top:12px"><strong>When should we revisit this?</strong><div class="filter-row" style="margin-top:8px">${[['1','1 month'],['3','3 months'],['6','6 months'],['12','12 months'],['pick','Pick date'],['none','Skip']].map(([value,label]) => `<button type="button" class="filter-chip" data-result-followup="${value}">${label}</button>`).join('')}</div>${lead.reviewDate ? `<small>Follow up ${prettyDate(lead.reviewDate)} · ${escapeHtml(lead.followUpReason || '')}</small>` : ''}</div>` : ''}${outcomeIsCustomer(lead) ? `<div class="section-title">Customer products and commission</div><div class="product-grid">${[['energy','Energy'],['broadband','Broadband'],['insurance','Insurance']].map(([key,label]) => `<label class="product-choice"><input type="checkbox" data-product="${key}" ${services[key]?'checked':''}> ${label}</label>`).join('')}</div><div class="sim-row"><div><strong>Essentials SIM · £6</strong><small>Qualifying count</small></div><div class="segmented">${[0,1,2].map(value => `<button type="button" class="${services.essentials===value?'active':''}" data-sim="essentials:${value}">${value}</button>`).join('')}</div></div><div class="sim-row"><div><strong>Unlimited SIM · £13</strong><small>Qualifying count</small></div><div class="segmented">${[0,1,2].map(value => `<button type="button" class="${services.unlimited===value?'active':''}" data-sim="unlimited:${value}">${value}</button>`).join('')}</div></div><div class="money-pair"><div class="money-box"><strong>${fmtMoney(preview.connector)}</strong><span>Connector income · test</span></div><div class="money-box"><strong>${fmtMoney(preview.partner)}</strong><span>Partner earnings · private</span></div></div>` : ''}` : ''}${!sat && set ? `<label class="product-choice" style="margin-top:12px"><input type="checkbox" data-set-followup ${lead.followUp?'checked':''}> Optional follow-up</label>` : ''}<details style="margin-top:16px"><summary>History (${history.length}) ▾</summary>${last ? `<p class="helper">Last update: ${escapeHtml(last.action)} · ${prettyDate(last.date)}</p>` : ''}<div class="activity-list">${history.map(item => `<div class="activity-row"><div class="activity-symbol">◉</div><div class="activity-copy"><strong>${escapeHtml(item.action)}</strong><small>${prettyDate(item.date)}</small></div></div>`).join('')}</div></details><div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-secondary" data-action="archive-lead">Archive Lead</button><button class="btn btn-pink" style="flex:1" data-action="save-lead">Save changes</button></div></div><div><div class="panel"><div class="panel-head"><div><h2>Lead details</h2><p>Current owner: ${userName(lead.currentOwnerId || lead.partnerId)}</p></div></div><div class="activity-list"><div class="activity-row"><span class="activity-symbol">◉</span><div class="activity-copy"><strong>${escapeHtml(lead.name)}</strong><small>${lead.homeStatus || 'Unknown'} · ${customer || 'Customer result pending'} · ${partner || 'Partner result pending'}</small></div></div></div></div>${isConnectorAdmin(lead.connectorId) ? `<details class="panel" style="margin-top:12px"><summary>Admin ▾</summary><div class="field" style="margin-top:12px"><label>Current owner</label><select data-owner-select>${state.users.filter(user => user.active).map(user => `<option value="${user.id}" ${user.id === (lead.currentOwnerId || lead.partnerId) ? 'selected' : ''}>${user.name}</option>`).join('')}</select></div></details>` : ''}</div></div>`;
+}
+
+function channelReport(leads, group = 'channel') { const groups = new Map(); for (const lead of leads) { const activity = activityById(lead.activityId); const name = group === 'channel' ? (lead.channel || 'Unknown') : (activity?.name || 'No specific activity'); if (!groups.has(name)) groups.set(name, []); groups.get(name).push(lead); } const rows = [...groups.entries()].map(([name,list]) => ({ name, count:list.length, set:list.filter(lead => historyHas(lead,'Booked') || ['Booked','Sat'].includes(lead.appointment)).length, sat:list.filter(lead => historyHas(lead,'Sat') || lead.appointment === 'Sat').length, customers:list.filter(outcomeIsCustomer).length, partners:list.filter(lead => partnerOutcome(lead) === 'Became a UW Partner' || lead.becamePartner).length, income:list.reduce((sum,lead) => sum + (resultFor(lead).connectorCommission || 0),0), forms: group === 'activity' ? state.stats.filter(stat => activityById(stat.activityId)?.name === name).reduce((sum,stat) => sum + stat.forms20K,0) : 0 })); return `<div class="panel"><div class="tab-bar"><button class="tab-btn ${group === 'channel' ? 'active' : ''}" data-report-group="channel">By Channel</button><button class="tab-btn ${group === 'activity' ? 'active' : ''}" data-report-group="activity">By Activity</button></div><div class="table-wrap"><table><thead><tr><th>${group === 'channel' ? 'Channel' : 'Activity'}</th><th>20K</th><th>Leads</th><th>Set</th><th>Sat</th><th>Customers</th><th>Partners</th><th>Connector income</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.name)}</td><td>${row.forms || '—'}</td><td>${row.count}</td><td>${row.set}</td><td>${row.sat}</td><td>${row.customers}</td><td>${row.partners}</td><td>${fmtMoney(row.income)}</td></tr>`).join('') || '<tr><td colspan="8">No attributed Leads in this period.</td></tr>'}</tbody></table></div></div>`; }
+
+function resultStageRow(source, next, from, to, filter, color) { const percent = from ? Math.round(to / from * 100) : 0; return `<div class="result-stage"><div class="result-stage-stat"><strong>${to}</strong><span>${next}</span></div><div class="result-stage-progress"><div class="result-stage-top"><span>${source} → ${next}</span><div><b>${from}</b><span> → </span><b>${to}</b><em>${percent}%</em></div></div><div class="funnel-track"><div class="funnel-fill" style="width:${percent}%;--fill:${color}"></div></div></div></div>`; }
+function progressView() {
+  const profile = state.funnelProfile || 'all'; const connectorScope = state.funnelConnector || 'all'; const eventScope = state.funnelEvent || 'all';
+  const connectorIds = state.connectors.filter(item => state.access.some(access => access.connectorId === item.id && access.userId === state.currentUserId) && (connectorScope === 'all' || item.id === connectorScope)).map(item => item.id);
+  const eventIds = state.activities.filter(item => connectorIds.includes(item.connectorId) && (eventScope === 'all' || item.id === eventScope)).map(item => item.id);
+  const owned = lead => profile === 'all' || (lead.generatedByPartnerId || lead.partnerId) === profile;
+  const leads = state.leads.filter(lead => !lead.archived && connectorIds.includes(lead.connectorId) && (eventScope === 'all' || lead.activityId === eventScope) && owned(lead) && inSelectedPeriod(lead.received));
+  const records = (state.twentyKRecords || []).filter(record => connectorIds.includes(record.connectorId) && eventIds.includes(record.activityId) && owned({ generatedByPartnerId: record.generatedByPartnerId }) && inSelectedPeriod(record.eventDate));
+  const legacy = state.stats.filter(stat => eventIds.includes(stat.activityId) && (profile === 'all' || stat.partnerId === profile) && inSelectedPeriod(activityById(stat.activityId)?.date)).reduce((sum, stat) => sum + Number(stat.forms20K || 0), 0);
+  const forms = records.length + legacy; const converted = records.filter(record => record.leadId && leads.some(lead => lead.id === record.leadId)).length;
+  const booked = leads.filter(lead => historyHas(lead, 'Booked') || ['Booked','Sat'].includes(lead.appointment) || !!appointmentOutcome(lead)).length;
+  const sat = leads.filter(lead => appointmentOutcome(lead) === 'Sat' || historyHas(lead, 'Sat')).length;
+  const customers = leads.filter(outcomeIsCustomer).length; const partners = leads.filter(lead => partnerOutcome(lead) === 'Partner signed up' || lead.becamePartner).length;
+  const m = { leads: leads.length, booked, sat, customers, partners };
+  const income = leads.reduce((sum, lead) => sum + Number(resultFor(lead).connectorCommission || 0), 0);
+  const unconverted = records.filter(record => !record.leadId);
+  const noAppointment = leads.filter(lead => !lead.appointmentDate && !appointmentOutcome(lead) && !['Booked','Sat'].includes(lead.appointment));
+  const cancelled = leads.filter(lead => appointmentOutcome(lead) === 'Cancelled');
+  const ghosted = leads.filter(lead => appointmentOutcome(lead) === 'Ghosted / No-show');
+  const notSat = leads.filter(lead => lead.appointment === 'Booked' && !appointmentOutcome(lead) && (!lead.appointmentDate || lead.appointmentDate <= today));
+  const satLeak = leads.filter(lead => appointmentOutcome(lead) === 'Sat' && !outcomeIsCustomer(lead));
+  const funnelList = (id, title, rows, type) => '<section class="panel funnel-drilldown" id="' + id + '"><h3>' + title + ' · ' + rows.length + '</h3>' + (rows.length ? '<div class="activity-list">' + rows.map(item => type === '20k' ? '<button class="activity-row funnel-person" data-open-20k="' + item.id + '"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(activityById(item.activityId)?.name || 'Event') + ' · ' + prettyDate(item.eventDate) + '</small><span>Open Event →</span></button>' : '<button class="activity-row funnel-person" data-edit-lead="' + item.id + '"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(contextLine(item)) + '</small><span>Open Lead →</span></button>').join('') + '</div>' : '<p class="small muted">No people in this stage.</p>') + '</section>';
+  const connectorOptions = state.connectors.filter(item => state.access.some(access => access.connectorId === item.id && access.userId === state.currentUserId));
+  const eventOptions = state.activities.filter(item => connectorIds.includes(item.connectorId) && item.type === 'Event');
+  const shortcut = (id, label, rows) => rows.length ? `<button type="button" class="filter-chip" data-report-jump="${id}">${label} · ${rows.length}</button>` : '';
+  return `${heading('Funnel results', `${connectorScope === 'all' ? 'All accessible Connectors' : connector(connectorScope)?.name || 'Connector'} · ${state.period}`, `<div class="results-income"><small>Connector income</small><strong>${fmtMoney(income)}</strong></div>`)}<div class="filter-row"><label class="small">Connector <select data-funnel-connector><option value="all" ${connectorScope === 'all' ? 'selected' : ''}>All accessible</option>${connectorOptions.map(item => '<option value="' + item.id + '" ' + (connectorScope === item.id ? 'selected' : '') + '>' + escapeHtml(item.name) + '</option>').join('')}</select></label><label class="small">Profile <select data-funnel-profile><option value="all" ${profile === 'all' ? 'selected' : ''}>All Profiles</option>${state.users.filter(user => user.active).map(user => '<option value="' + user.id + '" ' + (profile === user.id ? 'selected' : '') + '>' + escapeHtml(user.name) + '</option>').join('')}</select></label><label class="small">Event <select data-funnel-event><option value="all" ${eventScope === 'all' ? 'selected' : ''}>All Events</option>${eventOptions.map(item => '<option value="' + item.id + '" ' + (eventScope === item.id ? 'selected' : '') + '>' + escapeHtml(item.name) + '</option>').join('')}</select></label></div><div class="panel results-panel"><div class="result-stages">${resultStageRow('20Ks','Leads',forms,converted,'eventday','#e88b2a')}${resultStageRow('Leads','Appointments set',leads.length,m.booked,'set','#4778d0')}${resultStageRow('Set','Sat',m.booked,m.sat,'sat','#6550a1')}${resultStageRow('Sat','Customers',m.sat,m.customers,'customers','#4e9b69')}</div><p class="helper results-note">Named records retain their stable 20K to Lead links. Older aggregate 20K totals remain unattributed.</p><nav class="funnel-shortcuts" aria-label="Jump to funnel details">${shortcut('leak-20k-lead','20K → Lead',unconverted)}${shortcut('leak-no-appointment','No Appointment',noAppointment)}${shortcut('leak-cancelled','Cancelled',cancelled)}${shortcut('leak-ghosted','Ghosted / No-show',ghosted)}${shortcut('leak-not-sat','Set → Not sat',notSat)}${shortcut('leak-sat-customer','Sat → No Customer',satLeak)}</nav></div><div class="funnel-drill-grid">${funnelList('leak-20k-lead','20Ks not converted to Leads',unconverted,'20k')}${funnelList('leak-no-appointment','Leads without Appointments',noAppointment,'lead')}${funnelList('leak-cancelled','Appointments cancelled',cancelled,'lead')}${funnelList('leak-ghosted','Ghosted / no-show',ghosted,'lead')}${funnelList('leak-not-sat','Appointments set but not yet sat',notSat,'lead')}${funnelList('leak-sat-customer','Sat appointments without a Customer',satLeak,'lead')}</div>`;
+}
+function metricsGrid(m) { return `<div class="metric-grid">${metricCard('20K forms', m.forms, 'var(--green)', 'Partner counts', '#e3f6ec')}${drillMetricCard('Leads', m.leads, 'leads', 'var(--blue)', 'Genuine opportunities')}${drillMetricCard('Appointments set', m.booked, 'set', 'var(--purple-2)', 'Historical milestone')}${drillMetricCard('Appointments sat', m.sat, 'sat', 'var(--blue)', 'Historical milestone')}${drillMetricCard('Customers', m.customers, 'customers', 'var(--pink)', `${m.services} products`)}${drillMetricCard('Partners', m.partners, 'partners', 'var(--orange)', 'Parallel outcome')}${metricCard('Connector income', fmtMoney(m.income), 'var(--green)', 'TEST RULES', '#e3f6ec')}</div>`; }
+
+function leadsView() { const query = state.search.toLowerCase(); const scoped = isConnectorAdmin() && leadScope === 'my' ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId) : selectedLeads(); const filtered = scoped.filter(lead => { const match = !query || `${lead.name} ${lead.channel} ${customerOutcome(lead)} ${userName(lead.partnerId)}`.toLowerCase().includes(query); const metric = leadFilter === 'leads' || leadFilter === 'all' || !leadFilter ? true : leadFilter === 'set' ? historyHas(lead,'Booked') || ['Booked','Sat'].includes(lead.appointment) : leadFilter === 'sat' ? historyHas(lead,'Sat') || lead.appointment === 'Sat' : leadFilter === 'customers' ? outcomeIsCustomer(lead) : leadFilter === 'partners' ? partnerOutcome(lead) === 'Became a UW Partner' || lead.becamePartner : true; return match && metric; }); const scopeSwitch = isConnectorAdmin() ? `<div class="filter-row"><button class="filter-chip ${leadScope==='my'?'active':''}" data-lead-scope="my">My Leads</button><button class="filter-chip ${leadScope==='team'?'active':''}" data-lead-scope="team">Team Leads</button></div>` : ''; return `${heading('Leads', 'Update appointment states, customer results and follow-ups.', `<button class="btn btn-primary" data-action="newlead">＋ Add Lead</button>`)}${scopeSwitch}${leadFilter !== 'all' ? `<div class="callout" style="margin-bottom:12px">Showing: ${escapeHtml(leadFilter)}</div>` : ''}<div class="split-head" style="margin-bottom:12px"><div class="searchbox"><input data-search placeholder="Search Leads" value="${escapeHtml(state.search)}" aria-label="Search Leads"></div><span class="small muted">${filtered.length} active Leads</span></div><div class="lead-list">${filtered.length ? filtered.map(leadCard).join('') : '<div class="empty-state"><strong>No Leads match</strong>Add a Lead or adjust your search.</div>'}</div>`; }
+
+function commissionRulesView() { return `<div class="panel"><div class="panel-head"><div><h2>Commission lookup</h2><p>Central CRM calculation · CRM-BANDS-1</p></div></div><div class="callout" style="margin-bottom:13px">Energy, Broadband and Boiler/Home Cover each count as one. Any number of standard £6 SIMs count as one; Unlimited SIMs count as one each, capped at two. The qualifying service total is capped at four.</div><div class="table-wrap"><table><thead><tr><th>Qualifying services</th><th>Commission</th></tr></thead><tbody>${COMMISSION_BANDS.map((amount,count) => `<tr><td>${count}</td><td>${fmtMoney(amount)}</td></tr>`).join('')}</tbody></table></div><p class="helper">Legacy commission snapshots remain in saved records for history. New calculations use this lookup.</p></div>`; }
+
+function trendReport() {
+  const now = new Date(); const months = Array.from({ length: 6 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - 5 + index, 1));
+  const rows = months.map(month => { const key = month.toISOString().slice(0,7); const leads = selectedLeads(); const monthLeads = leads.filter(lead => lead.received?.slice(0,7) === key); const activity = { leads: monthLeads.length, set: leads.filter(lead => stageDate(lead,'Booked').slice(0,7) === key).length, sat: leads.filter(lead => stageDate(lead,'Sat').slice(0,7) === key).length, customers: leads.filter(lead => (latestResult(lead.id)?.resultDate || lead.resultDate || '').slice(0,7) === key && outcomeIsCustomer(lead)).length, partners: leads.filter(lead => (lead.partnerResultDate || lead.joined || lead.received).slice(0,7) === key && partnerOutcome(lead) === 'Became a UW Partner').length, income: leads.filter(lead => (latestResult(lead.id)?.resultDate || lead.resultDate || '').slice(0,7) === key).reduce((sum,lead) => sum + (resultFor(lead).connectorCommission || 0),0) }; const cohort = { leads: monthLeads.length, set: monthLeads.filter(lead => historyHas(lead,'Booked')).length, sat: monthLeads.filter(lead => historyHas(lead,'Sat')).length, customers: monthLeads.filter(outcomeIsCustomer).length, partners: monthLeads.filter(lead => partnerOutcome(lead) === 'Became a UW Partner').length }; return { month, activity, cohort }; });
+  return `<div class="panel"><div class="panel-head"><div><h2>Monthly performance</h2><p>Actual activity is separated from eventual Lead cohort outcomes.</p></div></div><div class="table-wrap"><table><thead><tr><th>Month</th><th colspan="6">Monthly activity</th></tr><tr><th></th><th>Leads received</th><th>Set</th><th>Sat</th><th>Customers</th><th>Partners</th><th>Income</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.month.toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</td><td>${row.activity.leads}</td><td>${row.activity.set}</td><td>${row.activity.sat}</td><td>${row.activity.customers}</td><td>${row.activity.partners}</td><td>${fmtMoney(row.activity.income)}</td></tr>`).join('')}</tbody></table></div><div class="section-title" style="margin-top:18px">Lead cohort · Leads generated in that month</div><div class="table-wrap"><table><thead><tr><th>Month</th><th>Leads</th><th>Eventually set</th><th>Eventually sat</th><th>Customers</th><th>Partners</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.month.toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</td><td>${row.cohort.leads}</td><td>${row.cohort.set}</td><td>${row.cohort.sat}</td><td>${row.cohort.customers}</td><td>${row.cohort.partners}</td></tr>`).join('')}</tbody></table></div></div>`;
+}
+
+function followupsView(activityId = '') {
+  const all = followUpLeads(selectedLeads()).filter(lead => !activityId || lead.activityId === activityId); const overdue = all.filter(lead => lead.reviewDate && lead.reviewDate < today).length; const dueToday = all.filter(lead => lead.reviewDate === today).length; const upcoming = all.filter(lead => !lead.reviewDate || lead.reviewDate > today).length; let leads = all;
+  if (state.followFilter === 'No for now') leads = leads.filter(lead => customerOutcome(lead) === 'No for now' || partnerOutcome(lead) === 'No for now'); if (state.followFilter === 'Cancelled') leads = leads.filter(lead => appointmentOutcome(lead) === 'Cancelled'); if (state.followFilter === 'Ghosted') leads = leads.filter(lead => appointmentOutcome(lead) === 'Ghosted / No-show'); if (state.followFilter === 'Due / overdue') leads = leads.filter(lead => lead.reviewDate && lead.reviewDate <= today);
+  return `${heading(activityId ? `Follow-ups from ${escapeHtml(activityById(activityId)?.name || 'this event')}` : 'Follow-up queue', 'Deliberate next steps stay separate from incomplete work.') }<div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">${metricCard('Overdue', overdue, 'var(--pink)')}${metricCard('Due today', dueToday, 'var(--orange)')}${metricCard('Upcoming', upcoming, 'var(--green)')}</div><div class="filter-row">${['All','No for now','Cancelled','Ghosted','Due / overdue'].map(filter => `<button class="filter-chip ${state.followFilter === filter ? 'active' : ''}" data-follow-filter="${filter}">${filter}${filter === 'All' ? ` (${all.length})` : ''}</button>`).join('')}</div><div class="lead-list">${leads.length ? leads.sort((a,b) => (a.reviewDate || '9999').localeCompare(b.reviewDate || '9999')).map(lead => `<article class="lead-card"><span class="activity-symbol">⌛</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))} · ${customerOutcome(lead) || 'Customer pending'} · ${partnerOutcome(lead) || 'Partner pending'} · ${lead.followUpReason || 'Follow-up'} · ${lead.reviewDate ? prettyDate(lead.reviewDate) : 'No date'}</p></div><button class="btn btn-secondary btn-sm" data-edit-lead="${lead.id}">Open</button></article>`).join('') : '<div class="empty-state"><strong>Nothing in this view</strong>Follow-ups will appear here when a Lead needs another look.</div>'}</div>`;
+}
+
+function followupMetric(label, value, filter, color) { return `<button type="button" class="metric-card" data-follow-summary="${filter}" style="--color:${color};--tint:#f0eafa;text-align:left"><div class="metric-label">${label}</div><div class="metric-value">${value}</div><div class="metric-note">Tap to view</div></button>`; }
+function followupsView(activityId = '') { const all = followUpLeads(selectedLeads()).filter(lead => !activityId || lead.activityId === activityId); const overdue = all.filter(lead => lead.reviewDate && lead.reviewDate < today).length; const dueToday = all.filter(lead => lead.reviewDate === today).length; const upcoming = all.filter(lead => !lead.reviewDate || lead.reviewDate > today).length; let leads = all; if (state.followFilter === 'Overdue') leads = leads.filter(lead => lead.reviewDate && lead.reviewDate < today); if (state.followFilter === 'Due today') leads = leads.filter(lead => lead.reviewDate === today); if (state.followFilter === 'Upcoming') leads = leads.filter(lead => !lead.reviewDate || lead.reviewDate > today); if (state.followFilter === 'No for now') leads = leads.filter(lead => customerOutcome(lead) === 'No for now' || partnerOutcome(lead) === 'No for now'); if (state.followFilter === 'Cancelled') leads = leads.filter(lead => appointmentOutcome(lead) === 'Cancelled'); if (state.followFilter === 'Ghosted') leads = leads.filter(lead => appointmentOutcome(lead) === 'Ghosted / No-show'); if (state.followFilter === 'Due / overdue') leads = leads.filter(lead => lead.reviewDate && lead.reviewDate <= today); return `${heading(activityId ? `Follow-ups from ${escapeHtml(activityById(activityId)?.name || 'this event')}` : 'Follow-up queue', 'Deliberate next steps stay separate from incomplete work.') }<div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">${followupMetric('Overdue', overdue, 'Overdue', 'var(--pink)')}${followupMetric('Due today', dueToday, 'Due today', 'var(--orange)')}${followupMetric('Upcoming', upcoming, 'Upcoming', 'var(--green)')}</div><div class="filter-row">${['All','No for now','Cancelled','Ghosted','Due / overdue'].map(filter => `<button class="filter-chip ${state.followFilter === filter ? 'active' : ''}" data-follow-filter="${filter}">${filter}${filter === 'All' ? ` (${all.length})` : ''}</button>`).join('')}</div><div class="lead-list">${leads.length ? leads.sort((a,b) => (a.reviewDate || '9999').localeCompare(b.reviewDate || '9999')).map(lead => `<article class="lead-card"><span class="activity-symbol">⌛</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))} · ${customerOutcome(lead) || 'Customer pending'} · ${partnerOutcome(lead) || 'Partner pending'} · ${lead.followUpReason || 'Follow-up'} · ${lead.reviewDate ? prettyDate(lead.reviewDate) : 'No date'}</p></div><button class="btn btn-secondary btn-sm" data-edit-lead="${lead.id}">Open</button></article>`).join('') : '<div class="empty-state"><strong>Nothing in this view</strong>Follow-ups will appear here when a Lead needs another look.</div>'}</div>`; }
+
+function leadCard(lead) { const canEdit = isConnectorAdmin(lead.connectorId) || (lead.currentOwnerId || lead.partnerId) === state.currentUserId; const customer = customerOutcome(lead); const partner = partnerOutcome(lead); return `<article class="lead-card"><span class="avatar">${escapeHtml(lead.name.slice(0,1).toUpperCase())}</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))} · Generated by ${userName(lead.generatedByPartnerId || lead.partnerId)}${lead.currentOwnerId && lead.currentOwnerId !== (lead.generatedByPartnerId || lead.partnerId) ? ` · Owner ${userName(lead.currentOwnerId)}` : ''}</p><div class="lead-tags"><span class="status ${statusClass(appointmentOutcome(lead))}">${escapeHtml(displayProgression(lead))}</span>${customer ? `<span class="status ${outcomeIsCustomer(lead) ? 'customer' : ''}">${escapeHtml(customer)}</span>` : ''}${partner ? `<span class="status">${escapeHtml(partner)}</span>` : ''}${needsUpdate(lead) ? '<span class="status followup">Needs update</span>' : ''}${lead.followUp ? `<span class="status followup">Follow-up${lead.reviewDate ? ` · ${prettyDate(lead.reviewDate)}` : ''}</span>` : ''}</div></div><div class="lead-actions">${canEdit ? `<button class="btn btn-secondary btn-sm" data-edit-lead="${lead.id}">Update</button>` : ''}</div></article>`; }
+
+function todayEvents() { return activeConnectorActivities().filter(activity => activity.type === 'Event' && activity.date === today); }
+function homeAction(action, icon, title, copy) { const routeAction = ['leads', 'inbox', 'progress', 'activities'].includes(action); return `<button class="home-action home-action-${action}" ${routeAction ? `data-route="${action}"` : `data-action="${action}"`}><span class="home-action-icon">${icon}</span><span><strong>${title}</strong><small>${copy}</small></span><span class="home-action-arrow">→</span></button>`; }
+function homeView() {
+  const leads = periodLeads(selectedLeads()); const m = metrics(leads); const events = todayEvents();
+  return `${heading(`Good ${greeting()}, ${currentUser().name}`, 'What do you want to do?', '')}<div class="home-actions">${homeAction('eventday', '🏀', 'EVENT DAY', "Run today's event")}${homeAction('leads', '👥', 'LEADS', 'Add and progress Leads')}${homeAction('progress', '📊', 'RESULTS', "See what's working")}${homeAction('activities', '📚', 'ACTIVITIES', 'Plan and review activity')}</div>${events.length ? `<div class="today-callout"><strong>${events.length === 1 ? `Today's event: ${escapeHtml(events[0].name)}` : `${events.length} Events today`}</strong><span>Event Day is ready for quick 20K counts and Leads.</span><button class="btn btn-soft btn-sm" data-action="eventday">Open Event Day →</button></div>` : ''}${actionInbox()}<div class="layout-grid home-lower"><div class="panel"><div class="panel-head"><div><h2>Quick snapshot</h2><p>${m.leads} Leads · ${m.booked} Set · ${m.sat} Sat</p></div><button class="text-link" data-route="progress">Open Results →</button></div>${metricsGrid(m)}</div><div class="panel"><div class="panel-head"><div><h2>Recent activity</h2><p>Latest updates from your team</p></div><button class="text-link" data-route="activities">All activities →</button></div><div class="activity-list">${state.history.filter(item => item.connectorId === state.selectedConnectorId).slice(0, 3).map(item => `<div class="activity-row"><div class="activity-symbol">◉</div><div class="activity-copy"><strong>${escapeHtml(item.summary)}</strong><small>${userName(item.partnerId)}</small></div><span class="activity-time">${relativeDate(item.timestamp)}</span></div>`).join('') || '<div class="empty-state">New activity will show up here.</div>'}</div></div></div><button class="setup-link" data-route="connectors">⚙ Setup / Admin</button>`;
+}
+function eventDayView() {
+  const events = todayEvents(); const activity = events.length === 1 ? events[0] : activityById(activeActivityId);
+  if (events.length > 1 && !events.some(item => item.id === activeActivityId)) return `${heading('Event Day', 'Choose the event you are working at today.') }<div class="activity-cards">${events.map(item => `<button class="event-card event-day-choice" data-open-activity="${item.id}"><div class="event-title">${escapeHtml(item.name)}</div><div class="event-sub">${prettyDate(item.date)} · ${escapeHtml(item.channel)}</div><span class="card-arrow">→</span></button>`).join('')}</div>`;
+  if (!activity) return `${heading('Event Day', 'No Event is scheduled for this Connector today.') }<div class="panel empty-state"><strong>No Event today</strong><p>Create an Event from Activities, or add a Lead without Event attribution.</p><button class="btn btn-primary" data-action="newactivity">＋ Create an Activity</button></div>`;
+  activeActivityId = activity.id; const leads = activityLeads(activity.id); const forms = state.stats.filter(stat => stat.activityId === activity.id).reduce((sum, stat) => sum + stat.forms20K, 0); const mine = statFor(activity.id, state.currentUserId);
+  return `${heading('Event Day', `${escapeHtml(activity.name)} · ${prettyDate(activity.date)}`, `<button class="btn btn-secondary" data-edit-activity="${activity.id}">Edit Activity</button>`)}<div class="event-day-hero"><div><div class="eyebrow">LIVE WORKSPACE</div><h2>${escapeHtml(activity.name)}</h2><p>${escapeHtml(activity.channel)} · ${leads.length} Leads linked today</p></div><span class="badge green">Today</span></div><div class="event-day-actions"><button class="event-day-button" data-count="1"><strong>+ 20K</strong><small>Add one form to my count (${mine})</small></button><button class="event-day-button" data-action="event-fast-lead"><strong>＋ Lead</strong><small>Add a Lead from this Event</small></button></div><div class="panel event-day-progress"><div class="panel-head"><div><h2>Progress</h2><p>Keep the next tap close</p></div><span class="badge green">${forms} team 20K</span></div><div class="quick-grid"><button class="quick-action" data-route="event"><span class="quick-icon">✓</span><span><strong>Quote sent</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">▣</span><span><strong>Appointment set</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">★</span><span><strong>Signed up</strong><small>Update a Lead</small></span></button><button class="quick-action" data-route="event"><span class="quick-icon">◎</span><span><strong>Open Leads</strong><small>Review this Event</small></span></button></div></div>`;
+}
+function aboutView() { return `${heading('About', 'Connector Activity Tracker release information.') }<div class="panel about-panel"><div class="brand about-brand"><div class="brand-mark"><img class="cat-brand-icon" src="icon.svg?v=0.11.2" alt=""></div><div><div class="brand-name">Connector Activity Tracker</div><div class="brand-kicker">${escapeHtml(connector()?.name || 'Workspace')}</div></div></div><div class="about-version">Version ${escapeHtml(APP.version)}</div><p class="muted">${demoMode ? 'Local demo only. Changes stay on this device and are not connected to the cloud.' : 'Authenticated Connector activity and results tracker.'}</p><div class="section-title">What's new</div><ul class="about-list">${APP.summary.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><div class="section-title">Version history</div><div class="activity-list">${APP.history.map(item => `<div class="activity-row"><div class="activity-symbol">#</div><div class="activity-copy"><strong>v${escapeHtml(item.version)}</strong><small>${prettyDate(item.date)} · ${escapeHtml(item.summary)}</small></div></div>`).join('')}</div></div>`; }
+function homeView() { const leads = periodLeads(selectedLeads()); const m = metrics(leads); const outstanding = needsUpdateLeads(selectedLeads()).length; return `${heading(`Good ${greeting()}, ${currentUser().name}`, 'What do you want to do?', '')}<div class="home-actions home-actions-v05">${homeAction('eventday', '🏀', 'EVENT DAY', "Run today's event")}${homeAction('leads', '👥', 'LEADS', 'Add and manage Leads')}${homeAction('inbox', '📥', 'ACTION INBOX', `${outstanding} Lead${outstanding === 1 ? '' : 's'} need updating`)}${homeAction('progress', '📊', 'RESULTS', "See what's working")}${homeAction('activities', '📚', 'ACTIVITIES', 'Plan and review Events, Campaigns and Ongoing activity')}</div><div class="monthly-snapshot"><div><strong>This month</strong><span>${m.forms} 20Ks · ${m.leads} Leads · ${m.booked} Set · ${m.sat} Sat · ${m.customers} Customers</span></div><button class="text-link" data-route="progress">View Results →</button></div><button class="setup-link" data-route="connectors">⚙ Setup / Admin</button>`; }
+function leadsView() { const query = state.search.toLowerCase(); const scoped = isConnectorAdmin() && leadScope === 'my' ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId) : selectedLeads(); const filtered = scoped.filter(lead => { const match = !query || `${lead.name} ${lead.channel} ${customerOutcome(lead)} ${userName(lead.partnerId)}`.toLowerCase().includes(query); const metric = leadFilter === 'leads' || leadFilter === 'all' ? true : leadFilter === 'set' ? historyHas(lead,'Booked') || ['Booked','Sat'].includes(lead.appointment) : leadFilter === 'sat' ? historyHas(lead,'Sat') || lead.appointment === 'Sat' : leadFilter === 'customers' ? outcomeIsCustomer(lead) : leadFilter === 'partners' ? partnerOutcome(lead) === 'Became a UW Partner' || lead.becamePartner : true; return match && metric; }); const labels = { leads: 'Leads', set: 'Appointments set', sat: 'Appointments sat', customers: 'Customers', partners: 'Partners' }; const contextual = labels[leadFilter] || ''; const back = contextual ? `<button class="context-back" data-route="progress">‹ Results</button>` : ''; const title = contextual || 'Leads'; const subtitle = contextual ? `${filtered.length} people · ${state.period}` : 'Add, manage and progress Leads.'; const scopeSwitch = isConnectorAdmin() ? `<div class="filter-row"><button class="filter-chip ${leadScope==='my'?'active':''}" data-lead-scope="my">My Leads</button><button class="filter-chip ${leadScope==='team'?'active':''}" data-lead-scope="team">Team Leads</button></div>` : ''; return `${back}${heading(title, subtitle, `<button class="btn btn-primary" data-action="newlead">＋ Add Lead</button>`)}${scopeSwitch}${leadFilter !== 'all' ? `<div class="callout" style="margin-bottom:12px">Showing ${escapeHtml(title.toLowerCase())} from ${state.period.toLowerCase()}.</div>` : ''}<div class="split-head" style="margin-bottom:12px"><div class="searchbox"><input data-search placeholder="Search Leads" value="${escapeHtml(state.search)}" aria-label="Search Leads"></div><span class="small muted">${filtered.length} active Leads</span></div><div class="lead-list">${filtered.length ? filtered.map(leadCard).join('') : '<div class="empty-state"><strong>No Leads match</strong>Add a Lead or adjust your search.</div>'}</div>`; }
+
+function render() {
+  if (publicReportOnly) {
+    if (publicReportError) { app.innerHTML = '<main class="content"><div class="panel"><h1>Report unavailable</h1><p class="muted">This report is not published on this device. The local prototype does not provide a public cloud report endpoint.</p></div></main>'; return; }
+    app.innerHTML = `<main class="content"><div class="report-preview">${sharedReport()}</div></main>`; return;
+  }
+  const views = { home: homeViewV07, eventday: eventDayV07, connectors: cloudConnectorView, about: aboutView, activities: activitiesView, newactivity: activityFormView, newlead: newLeadViewV07, leads: leadsView, lead: leadEditView, inbox: inboxView, followups: () => followupsView(), event: eventDetailView, eventfollowups: () => followupsView(activeActivityId), progress: progressView, reports: reportsView };
+  const titles = { home:'Home', eventday:'Event Day', connectors:'Setup / Admin', about:'About', activities:'Activities', newactivity:'Log Activity', newlead:'Add Lead', leads:'Leads', lead:'Update Lead', inbox:'Action Inbox', followups:'Follow-ups', event:activityById(activeActivityId)?.name || 'Event detail', eventfollowups:'Event follow-ups', progress:'Results', reports:'Reports' };
+  const view = views[state.route] || homeView; app.innerHTML = shell(view(), titles[state.route] || 'Home').replaceAll('Home status', 'Residential status');
+  const topActions = app.querySelector('.top-actions');
+  if (topActions) {
+    const count = needsUpdateLeads(selectedLeads()).length;
+    const button = document.createElement('button');
+    button.className = 'icon-btn inbox-top-button'; button.dataset.route = 'inbox'; button.title = 'Action Inbox'; button.setAttribute('aria-label', 'Action Inbox, ' + count + ' actions');
+    button.innerHTML = '📥' + (count ? '<span class="inbox-count">' + count + '</span>' : '');
+    const profile = topActions.querySelector('.profile-icon');
+    topActions.insertBefore(button, profile || null);
+  }
+  const sectionClass = leadFilter !== 'all' && state.route === 'leads' ? 'leads' : state.route === 'progress' ? 'results' : state.route === 'inbox' ? 'inbox' : state.route === 'activities' || state.route === 'newactivity' || state.route === 'event' ? 'activities' : state.route === 'eventday' ? 'eventday' : state.route === 'connectors' || state.route === 'about' ? 'admin' : 'home';
+  app.querySelector('.app-shell')?.classList.add(`section-${sectionClass}`);
+  if (state.route !== 'home' && !app.querySelector('.context-back') && !['lead','newlead','newactivity','connectors','about'].includes(state.route)) app.querySelector('.content')?.insertAdjacentHTML('afterbegin', '<button class="context-back" data-route="home">‹ Home</button>');
+  if (state.route === 'newlead' && todayEvents().length === 1 && !activeActivityId && !forceUnlinkedLead) { const leadForm = app.querySelector('#lead-form'); leadForm?.insertAdjacentHTML('beforebegin', `<div class="today-callout lead-event-suggestion"><strong>Are you at ${escapeHtml(todayEvents()[0].name)} today?</strong><span>Today's Event is preselected. You can change it below.</span></div>`); }
+  if (state.route === 'lead') { const save = app.querySelector('[data-action="save-lead"]'); save?.insertAdjacentHTML('beforebegin', '<button class="btn btn-secondary" data-action="cancel-lead">Cancel changes</button>'); }
+  if (state.route === 'connectors') app.querySelector('.content')?.insertAdjacentHTML('beforeend', `<div class="admin-shortcuts"><button class="btn btn-secondary" data-route="about">About · v${escapeHtml(APP.version)}</button><button class="btn btn-secondary" data-admin-rules>Commission rules / reference</button></div>`);
+}
+
+function commissionFor(services, resultDate) {
+  const count = qualifyingServiceCount(services);
+  const partner = COMMISSION_BANDS[Math.min(4, count)];
+  return { partner, connector: partner * 0.5, qualifyingServices: count, version: 'CRM-BANDS-2' };
+}
+function addDatePreset(base, quantity, period) { const date = new Date(`${String(base || today).slice(0,10)}T12:00:00`); const amount = Number(quantity); if (period === 'day') date.setDate(date.getDate() + amount); else if (period === 'week') date.setDate(date.getDate() + 7 * amount); else if (period === 'month') date.setMonth(date.getMonth() + amount); return date.toISOString().slice(0,10); }
+let followupPreset = { quantity: '', period: '' };
+function followupPresetMarkup(date = '') { return '<div class="followup-presets"><div class="followup-choice-row" role="group" aria-label="Choose follow-up interval">' + [1,2,3].map(value => '<button type="button" class="filter-chip ' + (followupPreset.quantity === String(value) ? 'active' : '') + '" data-follow-quantity="' + value + '" aria-pressed="' + (followupPreset.quantity === String(value)) + '">' + value + '</button>').join('') + [['day','Day'],['week','Week'],['month','Month']].map(([value,label]) => '<button type="button" class="filter-chip ' + (followupPreset.period === value ? 'active' : '') + '" data-follow-period="' + value + '" aria-pressed="' + (followupPreset.period === value) + '">' + label + '</button>').join('') + '</div><div class="field"><label>Follow-up date</label><input type="date" data-review-date value="' + (date || '') + '"></div>' + (date ? '<p class="helper">Follow-up date: <strong>' + prettyDate(date) + '</strong> · You can change it above.</p>' : '<p class="helper">Choose a quantity and period, or pick a date.</p>') + '</div>'; }
+function suggestFollowUp(lead) { followupDraft = { leadId: lead.id, quantity: '', period: '', date: '' }; openModal('Follow this Lead up?', '<p class="small muted">Choose a reminder or leave the Lead without a follow-up.</p><div class="followup-choice-row" role="group" aria-label="Choose follow-up interval">' + [1,2,3].map(value => '<button type="button" class="filter-chip" data-modal-follow-quantity="' + value + '" aria-pressed="false">' + value + '</button>').join('') + [['day','Day'],['week','Week'],['month','Month']].map(([value,label]) => '<button type="button" class="filter-chip" data-modal-follow-period="' + value + '" aria-pressed="false">' + label + '</button>').join('') + '</div><div class="field"><label>Follow-up date</label><input type="date" data-modal-follow-date></div><div class="helper" data-modal-follow-preview></div><div class="modal-actions"><button class="btn btn-secondary" data-action="undo-last">Undo status</button><button class="btn btn-secondary" data-modal-follow-none>No follow-up</button><button class="btn btn-primary" data-modal-follow-save>Save follow-up</button></div>'); }
+function addHistory(lead, action) { lead.history ||= []; lead.history.push({ date: today, action }); }
+function openModal(title, body) { const wrap = document.createElement('div'); wrap.className = 'modal-backdrop'; wrap.id = 'modal-wrap'; wrap.innerHTML = `<section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2>${title}</h2><button class="modal-close" data-action="close-modal" aria-label="Close">×</button></div>${body}</section>`; app.append(wrap); wrap.querySelectorAll('[data-switch-user]').forEach(button => button.addEventListener('click', () => { if (cloudCrmReady && !demoMode) return; state.currentUserId = button.dataset.switchUser; draftServices = null; state.route = 'home'; closeModal(); render(); persist(); })); }
+function closeModal() { document.getElementById('modal-wrap')?.remove(); }
+function openEventLeadModal(activityId) {
+  const activity = activityById(activityId);
+  openModal(`Quick Lead · ${escapeHtml(activity?.name || 'Event')}`, `<form id="event-lead-form"><div class="field"><label>First name</label><input name="name" required maxlength="40" placeholder="e.g. Andrew" autocomplete="off"></div><div class="section-title">Immediate progression</div><div class="appointment-grid"><label class="choice-card active"><input type="radio" name="progress" value="Lead sent" checked hidden>Lead sent</label><label class="choice-card"><input type="radio" name="progress" value="Quote sent" hidden>Quote sent</label><label class="choice-card"><input type="radio" name="progress" value="Booked" hidden>Appointment set</label><label class="choice-card"><input type="radio" name="progress" value="Signed up" hidden>Signed up</label></div><div class="field" style="margin-top:12px"><label>Appointment date <span class="muted">· only needed for Appointment set</span></label><input type="date" name="appointmentDate"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary">Save Lead</button></div></form>`);
+}
+function chooseProfile() { openModal('Switch sample Partner', `<p class="small muted">Use this local prototype to explore the Connector view for each team Partner.</p><div class="lead-list">${state.users.filter(user => user.active).map(user => `<button class="connector-card" data-switch-user="${user.id}"><span class="avatar">${user.name.slice(0,1)}</span><span class="connector-meta"><strong>${user.name}</strong><span>${user.role === 'Admin' ? 'Team Admin' : 'Partner'}</span></span>${user.id === state.currentUserId ? '<span class="badge green">Current</span>' : ''}</button>`).join('')}</div>`); }
+function openConnectorForm(item = null) { openModal(item ? 'Edit Connector' : 'Add a Connector', `<form id="connector-form"><input type="hidden" name="connectorId" value="${item?.id || ''}"><div class="field"><label>Connector / organisation name</label><input name="name" required maxlength="60" placeholder="e.g. Bright Hope" value="${escapeHtml(item?.name || '')}"></div><div class="field" style="margin-top:12px"><label>Main contact name · optional</label><input name="contact" maxlength="40" value="${escapeHtml(item?.mainContactName || '')}"></div><div class="field" style="margin-top:12px"><label>Connector logo</label><input name="logo" type="file" accept="image/*"></div><div class="form-grid" style="margin-top:12px"><div class="field"><label>Primary brand colour</label><input name="primaryColor" type="color" value="${safeHex(item?.primaryColor) || '#351065'}"></div><div class="field"><label>Accent colour</label><input name="accentColor" type="color" value="${safeHex(item?.accentColor) || '#5c2e9a'}"></div></div><div class="callout" style="margin-top:12px">Brand colours apply to selected controls and key actions. A private report token is generated automatically.</div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary">${item ? 'Save changes' : 'Create Connector'}</button></div></form>`); }
+async function readConnectorLogo(file) {
+  if (!cloudCrmReady) return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
+  if (typeof createImageBitmap !== 'function') throw new Error('This browser cannot safely prepare the Connector logo for cloud saving.');
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 128 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close?.();
+  let data = canvas.toDataURL('image/webp', 0.68);
+  if (data.length > 12000) data = canvas.toDataURL('image/jpeg', 0.42);
+  if (data.length > 12000) throw new Error('The Connector logo is still too large. Choose a simpler or smaller image.');
+  return data;
+}
+function openRuleForm() { openModal('Add test commission rule', `<form id="rule-form"><div class="callout"><strong>TEST RULE ONLY.</strong> Add only verified values when the current rules table has been supplied.</div><div class="form-grid" style="margin-top:13px"><div class="field full"><label>Rule label</label><input name="label" required placeholder="TEST ONLY: qualifying basket"></div><div class="field"><label>Effective from</label><input type="date" name="effectiveFrom" value="${today}" required></div><div class="field"><label>Version</label><input name="version" value="TEST-${today.slice(0,4)}-02" required></div>${[['energy','Energy'],['broadband','Broadband'],['insurance','Insurance']].map(([key,label]) => `<label class="product-choice"><input type="checkbox" name="${key}"> ${label}</label>`).join('')}<div class="field"><label>Essentials SIM (0–2)</label><select name="essentials"><option>0</option><option>1</option><option>2</option></select></div><div class="field"><label>Unlimited SIM (0–2)</label><select name="unlimited"><option>0</option><option>1</option><option>2</option></select></div><div class="field"><label>Partner amount · test</label><input type="number" name="partner" min="0" step="1" required></div><div class="field"><label>Connector amount · test</label><input type="number" name="connector" min="0" step="1" required></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary">Save test rule</button></div></form>`); }
+
+document.addEventListener('click', async event => {
+  const target = event.target.closest('button,[data-open-activity],[data-edit-lead]'); if (!target) return;
+  if (target.dataset.homeStatus) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.homeStatus = target.dataset.homeStatus; addHistory(lead, `Homeownership set to ${lead.homeStatus}`); commit(`Updated ${lead.name} homeownership`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); } return; }
+  if (target.dataset.followQuantity || target.dataset.followPeriod) { const lead = state.leads.find(item => item.id === activeLeadId); if (!lead) return; if (target.dataset.followQuantity) followupPreset.quantity = target.dataset.followQuantity; if (target.dataset.followPeriod) followupPreset.period = target.dataset.followPeriod; if (followupPreset.quantity && followupPreset.period) { lead.followUp = true; lead.reviewDate = addDatePreset(today, followupPreset.quantity, followupPreset.period); } render(); return; }
+  if (target.dataset.adminRules) { state.reportTab = 'rules'; navigate('reports'); return; }
+  if (target.dataset.selectEventday) { activeActivityId = target.dataset.selectEventday; render(); return; }
+  if (target.dataset.open20k) { const record = state.twentyKRecords.find(item => item.id === target.dataset.open20k); if (record && hasAccess(record.connectorId)) { state.selectedConnectorId = record.connectorId; activeActivityId = record.activityId; leadReturnRoute = 'eventday'; navigate('eventday'); } return; }
+  if (target.dataset.route) { navigate(target.dataset.route); return; }
+  if (target.dataset.action === 'choose-connector') return chooseConnector();
+  if (target.dataset.action === 'profile') return chooseProfile();
+  if (target.dataset.action === 'new-profile') return openNewProfileForm();
+  if (target.dataset.action === 'connectors') { navigate('connectors'); return; }
+  if (target.dataset.action === 'eventday') { activeActivityId = todayEvents()[0]?.id || activeActivityId; navigate('eventday'); return; }
+  if (target.dataset.action === 'newlead') { const sourceRoute = state.route; leadReturnRoute = ['eventday','event'].includes(sourceRoute) ? (sourceRoute === 'event' ? 'eventday' : sourceRoute) : 'leads'; forceUnlinkedLead = !!target.dataset.unlinkedLead || (!target.dataset.activity && !['eventday','event'].includes(sourceRoute)); if (forceUnlinkedLead) activeActivityId = ''; else activeActivityId = target.dataset.activity || activeActivityId; origin20KId = ''; navigate('newlead'); return; }
+  if (target.dataset.action === 'newactivity') { activeActivityId = ''; navigate('newactivity'); return; }
+  if (target.dataset.action === 'new-todays-event') { activeActivityId = ''; createTodayEvent = true; navigate('newactivity'); return; }
+  if (target.dataset.action === 'add-20k') { openTwentyKForm(activeActivityId); return; }
+  if (target.dataset.choose20k) { const record = state.twentyKRecords.find(item => item.id === target.dataset.choose20k); if (record && !record.leadId) { origin20KId = record.id; activeActivityId = record.activityId; forceUnlinkedLead = false; render(); } return; }
+  if (target.dataset.createLeadFromTwentyK || target.dataset.convert20k) {
+    convertTwentyKToLead(target.dataset.createLeadFromTwentyK || target.dataset.convert20k);
+    return;
+  }
+  if (target.dataset.reportJump) { document.getElementById(target.dataset.reportJump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (target.dataset.action === 'dismiss-inbox') { state.actionPromptDismissed = true; render(); return; }
+  if (target.dataset.action === 'event-fast-lead') { leadReturnRoute = 'eventday'; origin20KId = ''; forceUnlinkedLead = false; navigate('newlead'); return; }
+  if (target.dataset.action === 'close-modal') return closeModal();
+  if (target.dataset.action === 'new-connector') return openConnectorForm();
+  if (target.dataset.editConnector) return openConnectorForm(connector(target.dataset.editConnector));
+  if (target.dataset.action === 'new-rule') return openRuleForm();
+  if (target.dataset.setProgress) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { stageHistory(lead, target.dataset.setProgress, today); addHistory(lead, target.dataset.setProgress); commit(`Updated ${lead.name}: ${target.dataset.setProgress}`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); } return; }
+  if (target.dataset.setCustomer) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.customerResult = target.dataset.setCustomer; lead.outcome = lead.customerResult; addHistory(lead, `Customer result: ${lead.customerResult}`); commit(`Updated ${lead.name} customer result`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); } return; }
+  if (target.dataset.setPartnerResult) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.partnerResult = target.dataset.setPartnerResult; lead.partnerResultDate = today; lead.becamePartner = lead.partnerResult === 'Became a UW Partner'; if (lead.becamePartner) { state.generatedPartners = state.generatedPartners.filter(item => item.originLeadId !== lead.id); state.generatedPartners.push({ id: uid(), connectorId: lead.connectorId, originLeadId: lead.id, name: lead.name, joined: today, introducedBy: lead.generatedByPartnerId || lead.partnerId, status: 'Active' }); } addHistory(lead, `Partner result: ${lead.partnerResult}`); commit(`Updated ${lead.name} partner result`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); } return; }
+  if (target.dataset.resultFollowup) { const lead = state.leads.find(item => item.id === activeLeadId); if (!lead) return; if (target.dataset.resultFollowup === 'pick') { openModal('Choose follow-up date', `<form id="result-followup-form"><div class="field"><label>Date</label><input type="date" name="date" required></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary">Save follow-up</button></div></form>`); return; } if (target.dataset.resultFollowup === 'none') { lead.followUp = false; lead.reviewDate = ''; lead.followUpReason = ''; } else { const date = new Date(); date.setMonth(date.getMonth() + Number(target.dataset.resultFollowup)); lead.followUp = true; lead.reviewDate = dateISO(date); lead.followUpReason = lead.customerResult === 'No for now' && lead.partnerResult === 'No for now' ? 'Customer + Partner' : lead.partnerResult === 'No for now' ? 'Partner' : 'Customer'; } addHistory(lead, lead.followUp ? `Follow-up scheduled · ${lead.followUpReason}` : 'Follow-up skipped'); commit(`Updated ${lead.name} follow-up`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); return; }
+  if (target.dataset.action === 'archive-lead') { const lead = state.leads.find(item => item.id === activeLeadId); if (lead && confirm(`Archive ${lead.name}? This can be restored later by an admin.`)) { lead.archived = true; addHistory(lead, 'Record archived'); commit(`Archived Lead ${lead.name}`, lead.connectorId, 'lead', lead.id); showToast('Lead archived'); navigate('leads'); } return; }
+  if (target.dataset.action === 'save-lead') return saveLeadResult();
+  if (target.dataset.action === 'share-report') return shareReport();
+  if (target.dataset.switchUser) { if (cloudCrmReady && !demoMode) return; state.currentUserId = target.dataset.switchUser; draftServices = null; if (!hasAccess()) state.selectedConnectorId = state.connectors.find(item => hasAccess(item.id))?.id || ''; state.route = 'home'; closeModal(); render(); persist(); return; }
+  if (target.dataset.selectConnector) {
+    const selectedId = target.dataset.selectConnector;
+    if (!connector(selectedId) || !hasAccess(selectedId)) { showToast('Connector access unavailable'); return; }
+    state.selectedConnectorId = selectedId;
+    cloudConnectorId = selectedId;
+    activeLeadId = ''; activeActivityId = ''; origin20KId = ''; draftServices = null; leadDraftSnapshot = null;
+    leadFilter = 'all'; leadScope = 'team'; eventTab = 'my'; state.search = '';
+    closeModal(); navigate('home'); return;
+  }
+  if (target.dataset.editLead) { leadReturnRoute = ['eventday','inbox'].includes(state.route) ? state.route : 'leads'; activeLeadId = target.dataset.editLead; const lead = state.leads.find(item => item.id === activeLeadId); if (!lead || !hasAccess(lead.connectorId)) return; state.selectedConnectorId = lead.connectorId; leadDraftSnapshot = structuredClone(lead); leadDraftHistoryLength = state.history.length; leadDraftOutboxLength = state.outbox.length; draftServices = null; navigate('lead'); return; }
+  if (target.dataset.action === 'cancel-lead') { const lead = state.leads.find(item => item.id === activeLeadId); if (lead && leadDraftSnapshot) Object.assign(lead, structuredClone(leadDraftSnapshot)); state.history.splice(leadDraftHistoryLength); state.outbox.splice(leadDraftOutboxLength); draftServices = null; leadDraftSnapshot = null; navigate('leads'); persist(); return; }
+  if (target.dataset.openActivity) { activeActivityId = target.dataset.openActivity; eventTab = 'my'; navigate('event'); return; }
+  if (target.dataset.editActivity) { activeActivityId = target.dataset.editActivity; navigate('newactivity'); return; }
+  if (target.dataset.inboxLead) { const lead = state.leads.find(item => item.id === target.dataset.inboxLead); if (lead) { undoAction = { leadId: lead.id, previous: structuredClone({ appointmentOutcome: lead.appointmentOutcome, appointment: lead.appointment, progression: lead.progression, history: lead.history, updatedAt: lead.updatedAt, version: lead.version }) }; activeLeadId = lead.id; lead.appointmentOutcome = target.dataset.quickOutcome; lead.appointment = target.dataset.quickOutcome; stageHistory(lead, target.dataset.quickOutcome, today); addHistory(lead, `Appointment ${target.dataset.quickOutcome.toLowerCase()}`); commit(`Updated ${lead.name}: ${target.dataset.quickOutcome}`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); persist(); render(); showUndoToast(`${lead.name} marked ${target.dataset.quickOutcome}`); } return; }
+  if (target.dataset.count) { if (!document.getElementById('count-value')) { const activity = activityById(activeActivityId); if (activity) { let stat = state.stats.find(item => item.activityId === activity.id && item.partnerId === state.currentUserId); if (!stat) { stat = { id: uid(), activityId: activity.id, partnerId: state.currentUserId, forms20K: 0, version: 1 }; state.stats.push(stat); } stat.forms20K += 1; commit(`Logged 20K form for ${activity.name}`, activity.connectorId, 'activity-partner-stat', stat.id, 'update', { ...stat }); render(); showToast('20K form added'); } return; } const val = document.getElementById('count-value'); const next = Math.max(0, Number(val.textContent) + Number(target.dataset.count)); val.textContent = next; const total = activeActivityId ? state.stats.filter(item => item.activityId === activeActivityId && item.partnerId !== state.currentUserId).reduce((sum,item) => sum + item.forms20K, 0) : 0; document.getElementById('team-total').textContent = total + next; return; }
+  if (target.dataset.eventCount) { const activity = activityById(target.dataset.eventCount); if (activity) { let stat = state.stats.find(item => item.activityId === activity.id && item.partnerId === state.currentUserId); if (!stat) { stat = { id: uid(), activityId: activity.id, partnerId: state.currentUserId, forms20K: 0, version: 1 }; state.stats.push(stat); } stat.forms20K += 1; stat.version = (stat.version || 0) + 1; commit(`Logged 20K form for ${activity.name}`, activity.connectorId, 'activity-partner-stat', stat.id, 'update', { ...stat }); render(); showToast('20K form added'); } return; }
+  if (target.dataset.setAppointment) { const lead = state.leads.find(item => item.id === activeLeadId); const value = target.dataset.setAppointment; if (lead && appointmentOutcome(lead) !== value) { lead.appointmentOutcome = value; lead.appointment = value; stageHistory(lead, value, today); lead.updatedAt = new Date().toISOString(); lead.version = (lead.version || 0) + 1; addHistory(lead, `Appointment ${value.toLowerCase()}`); commit(`Updated ${lead.name}: ${value}`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); } render(); return; }
+  if (target.dataset.setOutcome) { const lead = state.leads.find(item => item.id === activeLeadId); const value = target.dataset.setOutcome; if (lead && lead.outcome !== value) { lead.outcome = value; stageHistory(lead, value, today); lead.updatedAt = new Date().toISOString(); lead.version = (lead.version || 0) + 1; addHistory(lead, value); commit(`Updated ${lead.name}: ${value}`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); } render(); return; }
+   if (target.dataset.sim) { const [kind, value] = target.dataset.sim.split(':'); const lead = state.leads.find(item => item.id === activeLeadId); if (!lead) return; draftServices ||= { ...(latestResult(lead.id)?.services || lead.services || { energy: false, broadband: false, insurance: false, essentials: 0, unlimited: 0 }) }; draftServices[kind] = Number(draftServices[kind] || 0) === Number(value) ? 0 : Number(value); render(); return; }
+  if (target.dataset.eventTab) { eventTab = target.dataset.eventTab; render(); return; }
+  if (target.dataset.leadScope) { leadScope = target.dataset.leadScope; render(); return; }
+  if (target.dataset.leadFilter) { leadFilter = target.dataset.leadFilter; navigate('leads'); return; }
+  if (target.dataset.resultUpdate) { if (target.dataset.resultUpdate === 'eventday') { activeActivityId = todayEvents()[0]?.id || ''; navigate('eventday'); return; } leadFilter = target.dataset.resultUpdate; leadScope = 'team'; navigate('leads'); return; }
+  if (target.dataset.eventFilter) { eventFilter = target.dataset.eventFilter; if (eventFilter === 'forms') { const rows = state.stats.filter(stat => stat.activityId === activeActivityId); openModal('20K contribution breakdown', `<div class="activity-list">${rows.map(stat => `<div class="activity-row"><div class="activity-symbol">▦</div><div class="activity-copy"><strong>${escapeHtml(userName(stat.partnerId))}</strong><small>${stat.forms20K} 20K forms</small></div></div>`).join('') || '<p class="muted">No Partner counts recorded yet.</p>'}</div>`); } else render(); return; }
+  if (target.dataset.eventForms) { const rows = state.stats.filter(stat => stat.activityId === target.dataset.eventForms); openModal('20K contribution breakdown', `<div class="activity-list">${rows.map(stat => `<div class="activity-row"><div class="activity-symbol">▦</div><div class="activity-copy"><strong>${escapeHtml(userName(stat.partnerId))}</strong><small>${stat.forms20K} 20K forms</small></div></div>`).join('') || '<p class="muted">No Partner counts recorded yet.</p>'}</div>`); return; }
+  if (target.dataset.followFilter) { state.followFilter = target.dataset.followFilter; render(); return; }
+  if (target.dataset.followSummary) { state.followFilter = target.dataset.followSummary; state.route = 'followups'; render(); return; }
+  if (target.dataset.followEvent) { activeActivityId = target.dataset.followEvent; state.followFilter = 'All'; navigate('eventfollowups'); return; }
+  if (target.dataset.reportTab) { state.reportTab = target.dataset.reportTab; render(); return; }
+  if (target.dataset.reportGroup) { state.reportGroup = target.dataset.reportGroup; render(); return; }
+});
+
+app.addEventListener('change', event => {
+  const target = event.target;
+  if (target.matches('[data-period]')) { setPeriod(target.value); return; }
+  if (target.matches('[data-funnel-profile]')) { state.funnelProfile = target.value; render(); return; }
+  if (target.matches('[data-funnel-connector]')) { state.funnelConnector = target.value; state.funnelEvent = 'all'; render(); return; }
+  if (target.matches('[data-funnel-event]')) { state.funnelEvent = target.value; render(); return; }
+  if (target.matches('[data-search]')) { state.search = target.value; render(); return; }
+  if (target.matches('[data-set-partner]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.becamePartner = target.checked; if (target.checked) { lead.outcome ||= 'No for now'; addHistory(lead, 'Became a UW Partner'); } state.generatedPartners = state.generatedPartners.filter(item => item.originLeadId !== lead.id); if (target.checked) state.generatedPartners.push({ id: uid(), connectorId: lead.connectorId, originLeadId: lead.id, name: lead.name, joined: today, introducedBy: lead.partnerId, status: 'Active' }); commit(`${lead.name} ${target.checked ? 'became a Partner' : 'Partner status removed'}`, lead.connectorId, 'generated-partner', lead.id); render(); } return; }
+  if (target.matches('[data-set-followup]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.followUp = target.checked; if (!target.checked) lead.reviewDate = ''; addHistory(lead, target.checked ? 'Follow-up required' : 'Follow-up cleared'); commit(`${lead.name} follow-up ${target.checked ? 'required' : 'cleared'}`, lead.connectorId, 'lead', lead.id); render(); } return; }
+  if (target.matches('[data-lead-channel]')) { const eventField = app.querySelector('.lead-event-field'); const eventSelect = eventField?.querySelector('select'); if (eventField) eventField.hidden = target.value !== '20K Event'; if (eventSelect) eventSelect.required = target.value === '20K Event'; return; }
+  if (target.matches('[data-lead-profile-channel]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.channel = target.value; addHistory(lead, `Channel changed to ${target.value}`); commit(`Changed ${lead.name} channel`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); } return; }
+  if (target.matches('[data-lead-profile-event]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.activityId = target.value; addHistory(lead, 'Event attribution updated'); commit(`Changed ${lead.name} Event`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); } return; }
+  if (target.matches('[data-review-timing]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (!lead) return; if (target.value === 'none') lead.reviewDate = ''; else if (target.value) { const date = new Date(); date.setMonth(date.getMonth() + Number(target.value)); lead.reviewDate = dateISO(date); } addHistory(lead, `Follow-up review timing changed${lead.reviewDate ? ` to ${prettyDate(lead.reviewDate)}` : ' to no date'}`); commit(`Changed ${lead.name} follow-up timing`, lead.connectorId, 'lead', lead.id); render(); return; }
+  if (target.matches('[data-review-date]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.reviewDate = target.value; addHistory(lead, 'Follow-up review date changed'); commit(`Changed ${lead.name} follow-up date`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); } return; }
+  if (target.matches('[data-appointment-date]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.appointmentDate = target.value; stageHistory(lead, 'Booked', target.value || today); addHistory(lead, `Appointment date set to ${prettyDate(target.value)}`); commit(`Changed ${lead.name} appointment date`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); } return; }
+  if (target.matches('[data-owner-select]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead && isConnectorAdmin(lead.connectorId)) { lead.currentOwnerId = target.value; addHistory(lead, `Current owner reassigned to ${userName(target.value)}`); commit(`Reassigned ${lead.name} to ${userName(target.value)}`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); render(); showToast('Current owner updated'); } return; }
+  if (target.matches('[data-product]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { draftServices ||= { ...(latestResult(lead.id)?.services || lead.services || { energy: false, broadband: false, insurance: false, essentials: 0, unlimited: 0 }) }; draftServices[target.dataset.product] = target.checked; render(); } }
+  if (target.matches('[data-sim-quantity]')) { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { draftServices ||= { ...(latestResult(lead.id)?.services || lead.services || { energy: false, broadband: false, essentials: 0, unlimited: 0 }) }; draftServices[target.dataset.simQuantity] = Math.max(0, Math.floor(Number(target.value) || 0)); render(); } }
+});
+
+app.addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.target; const data = new FormData(form);
+  if (form.id === 'result-followup-form') { const lead = state.leads.find(item => item.id === activeLeadId); if (lead) { lead.followUp = true; lead.reviewDate = String(data.get('date') || ''); lead.followUpReason = lead.customerResult === 'No for now' && lead.partnerResult === 'No for now' ? 'Customer + Partner' : lead.partnerResult === 'No for now' ? 'Partner' : 'Customer'; addHistory(lead, `Follow-up scheduled · ${lead.followUpReason}`); commit(`Updated ${lead.name} follow-up`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); closeModal(); render(); } return; }
+  if (form.id === 'activity-form') {
+    const values = Object.fromEntries(data.entries()); let activity = activeActivityId ? activityById(activeActivityId) : null;
+    if (!activity) { activity = { id: uid(), connectorId: state.selectedConnectorId, active: true, createdAt: new Date().toISOString() }; state.activities.push(activity); }
+    Object.assign(activity, { name: values.name.trim(), date: values.date, type: values.type || 'Event', channel: values.channel, notes: values.notes, updatedAt: new Date().toISOString() });
+    const countNode = document.getElementById('count-value');
+    if (countNode) {
+      const count = Number(countNode.textContent); let stat = state.stats.find(item => item.activityId === activity.id && item.partnerId === state.currentUserId);
+      if (!stat) { stat = { id: uid(), activityId: activity.id, partnerId: state.currentUserId, forms20K: count, version: 1 }; state.stats.push(stat); } else { stat.forms20K = count; stat.version += 1; stat.updatedAt = new Date().toISOString(); }
+      commit(`Logged ${count} 20K forms for ${activity.name}`, activity.connectorId, 'activity-partner-stat', stat.id, 'update', { ...stat });
+      showToast('Your count is saved on this device');
+    } else { commit(`${activeActivityId ? 'Updated' : 'Created'} activity ${activity.name}`, activity.connectorId, 'activity', activity.id, activeActivityId ? 'update' : 'create', { ...activity }); showToast('Activity created on this device'); }
+    activeActivityId = activity.id; state.route = countNode ? 'event' : 'event'; eventTab = 'my'; render(); return;
+  }
+  if (form.id === 'lead-form') {
+    const submitter = event.submitter?.value || 'save'; const booked = submitter === 'booked'; const lead = { id: uid(), connectorId: state.selectedConnectorId, generatedByPartnerId: state.currentUserId, currentOwnerId: state.currentUserId, partnerId: state.currentUserId, name: String(data.get('name')).trim(), received: data.get('received'), channel: data.get('channel') || 'Unknown', activityId: data.get('activityId') || '', homeStatus: data.get('homeStatus') || 'Unknown', appointment: booked ? 'Booked' : '', appointmentOutcome: '', appointmentDate: booked ? String(data.get('appointmentDate') || '') : '', outcome: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, createdAt: new Date().toISOString(), version: 1, progression: [{ stage: booked ? 'Booked' : 'Lead sent', date: data.get('received') || today }], history: [{ date: today, action: 'Lead created' }] };
+    if (booked) lead.history.push({ date: today, action: 'Appointment booked' }); state.leads.unshift(lead); activeLeadId = lead.id; commit(`Added Lead ${lead.name}${booked ? ' and marked appointment booked' : ''}`, lead.connectorId, 'lead', lead.id, 'create', { ...lead }); showToast('Lead saved on this device'); navigate('lead'); return;
+  }
+  if (form.id === 'event-lead-form') {
+    const progress = String(data.get('progress') || 'Lead sent');
+    const lead = { id: uid(), connectorId: state.selectedConnectorId, generatedByPartnerId: state.currentUserId, currentOwnerId: state.currentUserId, partnerId: state.currentUserId, name: String(data.get('name')).trim(), received: today, channel: activityById(activeActivityId)?.channel || 'In-person / 20K', activityId: activeActivityId, homeStatus: 'Unknown', appointment: progress === 'Booked' ? 'Booked' : '', appointmentOutcome: '', appointmentDate: progress === 'Booked' ? String(data.get('appointmentDate') || '') : '', outcome: progress === 'Signed up' ? 'New customer' : '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, version: 1, progression: [{ stage: progress, date: today }], history: [{ date: today, action: `Lead created · ${progress}` }] };
+    state.leads.unshift(lead); commit(`Added event Lead ${lead.name} · ${progress}`, lead.connectorId, 'lead', lead.id, 'create', { ...lead }); closeModal(); showToast('Event Lead saved'); if (progress === 'Signed up') { activeLeadId = lead.id; navigate('lead'); } else render(); return;
+  }
+  if (form.id === 'profile-form') {
+    const user = currentUser(); const name = String(data.get('name') || '').trim(); const file = data.get('avatar');
+    if (!name) { showToast('Enter a profile name'); return; }
+    if (file?.size) { if (!file.type.startsWith('image/') || file.size > 1572864) { showToast('Choose an image smaller than 1.5 MB'); return; } user.avatar = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }); }
+    user.name = name; commit(`Updated profile for ${name}`, state.selectedConnectorId, 'user', user.id, 'update', { ...user }); closeModal(); render(); showToast('Profile saved'); return;
+  }
+  if (form.id === 'create-profile-form') {
+    if (cloudCrmReady) { showToast('Add an existing Companion Partner ID through Connector access settings.'); return; }
+    if (!isConnectorAdmin()) { showToast('Only a Connector Admin can create profiles'); return; }
+    const name = String(data.get('name') || '').trim(); const file = data.get('avatar'); if (!name) { showToast('Enter a profile name'); return; }
+    const user = { id: uid(), name, role: 'Partner', active: true };
+    if (file?.size) { if (!file.type.startsWith('image/') || file.size > 1572864) { showToast('Choose an image smaller than 1.5 MB'); return; } user.avatar = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }); }
+    state.users.push(user); state.access.push({ connectorId: state.selectedConnectorId, userId: user.id, role: 'Editor' }); commit(`Created profile for ${name}`, state.selectedConnectorId, 'user', user.id, 'create', { ...user }); closeModal(); render(); showToast('Profile created'); return;
+  }
+  if (form.id === 'connector-form') {
+    const name = String(data.get('name')).trim(); const id = String(data.get('connectorId') || ''); const logoFile = data.get('logo'); let logo = '';
+    if (logoFile?.size) {
+      if (!logoFile.type.startsWith('image/') || logoFile.size > 1572864) { showToast('Choose an image smaller than 1.5 MB'); return; }
+      try { logo = await readConnectorLogo(logoFile); } catch (error) { showToast(error.message); return; }
+    }
+    if (id) {
+      const item = connector(id); if (!item || !hasAccess(id)) return;
+      Object.assign(item, { name, mainContactName: String(data.get('contact') || '').trim(), primaryColor: safeHex(data.get('primaryColor')) || '#351065', accentColor: safeHex(data.get('accentColor')) || '#5c2e9a', updatedAt: new Date().toISOString() }); if (logo) item.logo = logo;
+      commit(`Updated Connector ${name}`, item.id, 'connector', item.id, 'update', { ...item }); closeModal(); render(); showToast(cloudCrmReady ? 'Connector change queued for cloud save' : 'Connector change queued for cloud save'); return;
+    }
+    let code; do { code = `CN-${Math.random().toString(36).slice(2,6).toUpperCase()}`; } while (state.connectors.some(item => item.code === code));
+    const item = { id: uid(), code, name, active: true, logo: logo || '◈', primaryColor: safeHex(data.get('primaryColor')) || '#351065', accentColor: safeHex(data.get('accentColor')) || '#5c2e9a', reportToken: uid(), mainContactName: String(data.get('contact') || '').trim(), createdAt: new Date().toISOString() }; state.connectors.push(item); state.access.push({ connectorId: item.id, userId: state.currentUserId, role: 'Admin' }); state.selectedConnectorId = item.id; commit(`Created Connector ${name}`, item.id, 'connector', item.id, 'create', { ...item }); closeModal(); navigate('home'); showToast(cloudCrmReady ? 'Connector saved locally; waiting for cloud confirmation' : `${name} is ready`); return;
+  }
+  if (form.id === 'rule-form') {
+    const rule = { id: uid(), version: String(data.get('version')).trim(), effectiveFrom: data.get('effectiveFrom'), effectiveTo: '', products: { energy: data.has('energy'), broadband: data.has('broadband'), insurance: data.has('insurance'), essentials: Number(data.get('essentials')), unlimited: Number(data.get('unlimited')) }, partner: Number(data.get('partner')), connector: Number(data.get('connector')), label: `TEST ONLY: ${String(data.get('label')).trim()}` };
+    state.commissionRules.push(rule); commit('Added a test commission rule', state.selectedConnectorId, 'commission-rule', rule.id); closeModal(); state.reportTab = 'rules'; render(); showToast('Test rule saved');
+  }
+});
+
+function saveLeadResult() {
+  const lead = state.leads.find(item => item.id === activeLeadId); if (!lead) return;
+  if ((lead.appointment === 'Booked' || appointmentOutcome(lead)) && !lead.appointmentDate) { showToast('Choose an appointment date before saving'); app.querySelector('[data-appointment-date]')?.focus(); return; }
+  if (lead.followUp && (!lead.reviewDate || Number.isNaN(Date.parse(`${lead.reviewDate}T12:00:00`)))) { showToast('Choose a valid follow-up date before saving'); app.querySelector('[data-review-date]')?.focus(); return; }
+  const services = draftServices || latestResult(lead.id)?.services || lead.services;
+  const previous = latestResult(lead.id);
+  const changedBasket = !previous || JSON.stringify(previous.services) !== JSON.stringify(services);
+  if (services && changedBasket && (outcomeIsCustomer(lead) || serviceCount({ ...lead, services }))) {
+    const calc = commissionFor(services, today);
+    const result = { id: uid(), leadId: lead.id, connectorId: lead.connectorId, resultDate: today, services: { ...services }, partnerCommission: calc.partner, connectorCommission: calc.connector, ruleVersion: calc.version, createdAt: new Date().toISOString() };
+    state.customerResults.push(result);
+    commit(`Saved customer result for ${lead.name}`, lead.connectorId, 'customer-result', result.id, 'create', result);
+    lead.services = { ...services }; lead.partnerCommission = calc.partner; lead.connectorCommission = calc.connector; lead.commissionRuleVersion = calc.version; lead.resultDate = today;
+    addHistory(lead, `Customer result saved using ${calc.version}`);
+  }
+  draftServices = null;
+  lead.updatedAt = new Date().toISOString(); lead.version = (lead.version || 0) + 1; commit(`Saved result for ${lead.name}`, lead.connectorId, 'lead', lead.id, 'update', { ...lead }); showToast('Lead saved on this device'); navigate(leadReturnRoute || 'leads');
+}
+async function shareReport() { state.reportTab = 'shared'; state.route = 'reports'; render(); showToast('Shared report preview ready'); }
+
+let forceUnlinkedLead = false;
+let origin20KId = '';
+let leadReturnRoute = 'leads';
+let createTodayEvent = false;
+const primaryNavItems = [
+  { id: 'home', label: 'Home', short: 'Home', icon: '🏠', color: 'var(--purple-2)' },
+  { id: 'eventday', label: 'Event Day', short: 'Event Day', icon: '📅', color: 'var(--orange)' },
+  { id: 'leads', label: 'Leads', short: 'Leads', icon: '👥', color: 'var(--blue)' },
+  { id: 'progress', label: 'Results', short: 'Results', icon: '📊', color: 'var(--green)' },
+  { id: 'activities', label: 'Activities', short: 'Activities', icon: '📚', color: 'var(--purple-2)' }
+];
+function primaryRouteFor(route) {
+  if (route === 'home') return 'home';
+  if (route === 'eventday') return 'eventday';
+  if (['leads', 'lead', 'newlead', 'followups'].includes(route)) return 'leads';
+  if (route === 'inbox') return 'leads';
+  if (['progress', 'reports'].includes(route)) return 'progress';
+  if (['activities', 'newactivity', 'event', 'eventfollowups'].includes(route)) return 'activities';
+  return '';
+}
+function shell(content, title) {
+  const user = currentUser();
+  const brand = connector(); const primary = safeHex(brand?.primaryColor) || '#351065'; const accent = safeHex(brand?.accentColor) || '#5c2e9a';
+  const activePrimary = primaryRouteFor(state.route);
+  const nav = primaryNavItems.map(item => {
+    const active = activePrimary === item.id;
+    return `<button class="nav-btn ${active ? 'active' : ''}" style="--nav-accent:${item.color}" data-route="${item.id}" ${active ? 'aria-current="page"' : ''}><span class="nav-icon">${item.icon}</span><span>${item.label}</span></button>`;
+  }).join('');
+  const mobileNav = primaryNavItems.map(item => {
+    const active = activePrimary === item.id;
+    return `<button class="${active ? 'active' : ''}" style="--nav-accent:${item.color}" data-route="${item.id}" aria-label="${item.label}" ${active ? 'aria-current="page"' : ''}><span>${item.icon}</span><span>${item.short}</span></button>`;
+  }).join('');
+  const periodControl = state.route === 'progress'
+    ? `<select class="period-select" data-period aria-label="Results period">${periods.map(period => `<option ${period === state.period ? 'selected' : ''}>${period}</option>`).join('')}</select>`
+    : '';
+  return `<div class="app-shell" style="--brand-primary:${primary};--brand-accent:${accent};--brand-on-primary:${readableText(primary)};--brand-on-accent:${readableText(accent)}"><aside class="sidebar"><div class="brand"><div class="brand-mark"><img class="cat-brand-icon" src="icon.svg?v=0.11.2" alt=""></div><div><div class="brand-name">Connector Activity Tracker</div><div class="brand-kicker">Utility Warehouse · Connector tools</div></div></div><div class="side-label">Workspace</div><nav class="nav-list" aria-label="Main navigation">${nav}</nav><div class="sidebar-bottom"><div class="local-state"><strong>${demoMode ? 'Demo · saved on this device' : cloudSyncError ? 'Saved locally · sync needs attention' : state.outbox.length ? 'Saved locally · sync queued' : 'Saved to cloud'}</strong>${state.outbox.length ? `${state.outbox.length} change${state.outbox.length === 1 ? '' : 's'} waiting to sync` : demoMode ? 'Cloud sync is not connected' : 'All changes acknowledged by CAT Cloud'}</div><button class="profile-switch" data-action="profile"><span class="avatar">${avatarMarkup(user)}</span><span class="profile-copy"><span class="profile-name">${escapeHtml(user.name)}</span><span class="profile-role">${user.role === 'Admin' ? 'Team Admin' : 'Partner'} · Setup & profile</span></span><span aria-hidden="true">⌄</span></button></div></aside><main class="main-area"><header class="topbar"><div class="crumbs"><button type="button" class="connector-switcher" data-action="choose-connector" aria-haspopup="dialog" aria-label="Switch Connector. Currently ${escapeHtml(brand?.name || 'Connector')}." title="Switch Connector"><span class="connector-mini-logo">${logoMarkup(brand)}</span><span class="connector-switcher-label">${escapeHtml(brand?.name || 'Choose Connector')}</span><span class="connector-switcher-caret" aria-hidden="true">⌄</span></button><span class="crumb-divider" aria-hidden="true">›</span><strong class="crumb-page-title">${escapeHtml(title)}</strong></div><div class="top-actions"><span class="sync-pill" title="${demoMode ? 'Local demo data only. Cloud sync is not connected.' : cloudSyncError || (state.outbox.length ? 'Changes are queued until the cloud confirms them.' : 'All changes are acknowledged by CAT Cloud.')}">${demoMode ? '● Demo' : cloudSyncError ? '● Sync issue' : state.outbox.length ? '● Sync queued' : '● Synced'}</span>${periodControl}<button class="profile-name-button" data-action="profile" title="Profile and setup"><span class="avatar">${avatarMarkup(user)}</span>${escapeHtml(user.name)}</button></div></header><div class="preview-notice" role="note"><strong>CAT v0.11.2 preview</strong> · This is a test interface connected to the existing live CAT Cloud. You can try switching Connectors. Any records you edit will affect the live cloud database.</div>${demoMode ? '<div class="demo-banner">Local demo · changes stay on this device. Sign in from the app launch page to use the cloud workspace.</div>' : ''}<section class="content">${content}</section></main><nav class="mobile-nav" aria-label="Main navigation">${mobileNav}</nav></div>`;
+}
+function homeView() { return eventDayView(); }
+function homeViewV07() {
+  const outstanding = needsUpdateLeads(selectedLeads()).slice(0, 3);
+  const cards = [['eventday','🏀','Event Day',"Run today's Event"],['leads','👥','Leads','Add and progress people'],['progress','📊','Results','See what is working'],['activities','📚','Activities','Events and other activity']].map(item => homeAction(...item)).join('');
+  const attention = outstanding.length ? '<div class="lead-list">' + outstanding.map(lead => '<article class="lead-card inbox-row"><span class="activity-symbol">⚠</span><div class="lead-main"><strong>' + escapeHtml(lead.name) + '</strong><p>' + escapeHtml(contextLine(lead)) + '</p></div><button class="btn btn-secondary btn-sm" data-edit-lead="' + lead.id + '">Update</button></article>').join('') + '</div>' : '<div class="home-clear">✓ You’re up to date</div>';
+  return heading('Good ' + greeting() + ', ' + currentUser().name, 'What do you want to do?') + '<div class="home-actions">' + cards + '</div><section class="panel home-lower"><div class="panel-head"><div><h2>Needs your attention</h2></div><button class="text-link" data-route="inbox">Action Inbox →</button></div>' + attention + '</section><button class="setup-link" data-route="connectors">⚙ Setup / Admin</button>';
+}
+function eventDayV07() {
+  const events = todayEvents();
+  const activity = events.find(item => item.id === activeActivityId) || state.activities.find(item => item.id === activeActivityId && item.connectorId === state.selectedConnectorId) || (events.length === 1 ? events[0] : null);
+  if (events.length > 1 && !activity) return heading('Event Day', 'Which event are you working at today?') + '<div class="activity-cards">' + events.map(item => '<button class="event-card event-day-choice" data-select-eventday="' + item.id + '">' + escapeHtml(item.name) + ' · ' + prettyDate(item.date) + '</button>').join('') + '</div>';
+  if (!activity) return heading('Event Day', 'No Event set up for today.') + '<div class="event-day-empty panel"><h2>No Event set up for today.</h2><p>Create one to start recording named 20K forms.</p><button class="btn btn-primary" data-action="new-todays-event">＋ Create today’s Event</button></div>';
+  activeActivityId = activity.id;
+  const records = event20Ks(activity.id);
+  const mine = records.filter(record => record.generatedByPartnerId === state.currentUserId);
+  const legacy = legacy20KFor(activity.id);
+  const mineLegacy = legacy20KFor(activity.id, state.currentUserId);
+  const total = records.length + legacy;
+  const leads = activityLeads(activity.id);
+  const eventLeads = leads;
+  const setLeads = eventLeads.filter(lead => historyHas(lead, 'Booked') || ['Booked','Sat','Cancelled','Ghosted / No-show'].includes(lead.appointment) || ['Sat','Cancelled','Ghosted / No-show'].includes(appointmentOutcome(lead)));
+  const satLeads = eventLeads.filter(lead => appointmentOutcome(lead) === 'Sat');
+  const customers = eventLeads.filter(outcomeIsCustomer);
+  const partnerRows = state.users.filter(user => user.active).map(user => {
+    const personRecords = records.filter(record => record.generatedByPartnerId === user.id).length + legacy20KFor(activity.id, user.id);
+    const personLeads = eventLeads.filter(lead => (lead.generatedByPartnerId || lead.partnerId) === user.id);
+    const personSet = personLeads.filter(lead => historyHas(lead, 'Booked') || ['Booked','Sat','Cancelled','Ghosted / No-show'].includes(lead.appointment) || ['Sat','Cancelled','Ghosted / No-show'].includes(appointmentOutcome(lead))).length;
+    const personSat = personLeads.filter(lead => appointmentOutcome(lead) === 'Sat').length;
+    const personCustomers = personLeads.filter(outcomeIsCustomer).length;
+    return `<div class="event-partner-progress"><strong>${escapeHtml(user.name)}</strong><span>20K ${personRecords} · Leads ${personLeads.length} · Set ${personSet} · Sat ${personSat} · Customers ${personCustomers}</span></div>`;
+  }).join('');
+  const rows = mine.map(record => { const lead = state.leads.find(item => item.id === record.leadId); const status = lead ? (appointmentOutcome(lead) || (lead.appointment === 'Booked' ? 'Appointment set' : 'Lead')) + (lead.appointmentDate ? ' · ' + prettyDate(lead.appointmentDate) : '') + (customerOutcome(lead) ? ' · ' + customerOutcome(lead) : '') : ''; return '<div class="twenty-k-row"><strong>' + escapeHtml(record.name) + '</strong>' + (lead ? '<button class="text-link" data-edit-lead="' + lead.id + '">' + escapeHtml(status) + ' →</button>' : '<button class="btn btn-soft btn-sm" data-convert20k="' + record.id + '">Convert into Lead</button>') + '</div>'; }).join('');
+  const leadRows = leads.slice(0, 5).map(lead => { const progressed = appointmentOutcome(lead) || (lead.appointment === 'Booked' ? 'Appointment set' : ''); const detail = progressed ? progressed + (lead.appointmentDate ? ' · ' + prettyDate(lead.appointmentDate) : '') + (customerOutcome(lead) ? ' · ' + customerOutcome(lead) : '') : ''; return '<article class="event-lead-row"><div><strong>' + escapeHtml(lead.name) + '</strong>' + (detail ? '<span>' + escapeHtml(detail) + '</span>' : '') + '</div><button class="btn btn-secondary btn-sm" data-edit-lead="' + lead.id + '">Update</button></article>'; }).join('');
+  const brand = connector();
+  const hero = `<section class="event-day-banner"><div class="event-day-brand"><span class="event-day-logo">${logoMarkup(brand)}</span><span>${escapeHtml(brand?.name || 'Connector')}</span></div><div class="event-day-identity"><div class="eyebrow">TODAY’S EVENT</div><h1>${escapeHtml(activity.name)}</h1><p>${prettyDate(activity.date)} · ${escapeHtml(activity.channel)}</p></div><button class="btn btn-banner-edit" data-edit-activity="${activity.id}">Edit Event</button></section>`;
+  const progress = `<details class="event-progress"><summary aria-label="Event-wide progress: ${total} 20Ks, ${leads.length} Leads, ${setLeads.length} set, ${satLeads.length} sat, ${customers.length} customers"><span><strong>20Ks</strong> ${total}</span><i></i><span><strong>Leads</strong> ${leads.length}</span><i></i><span><strong>Set</strong> ${setLeads.length}</span><i></i><span><strong>Sat</strong> ${satLeads.length}</span><i></i><span><strong>Customers</strong> ${customers.length}</span><b class="event-progress-toggle">＋</b></summary><div class="event-progress-breakdown">${partnerRows || '<span class="small muted">No active Partner profiles yet.</span>'}</div></details>`;
+  const actions = '<div class="event-day-actions"><button class="event-day-button event-count-button" data-action="add-20k"><span class="event-action-icon">＋</span><span><strong>Add 20K</strong><small>Record a named Event contact</small></span></button><button class="event-day-button event-lead-button" data-action="event-fast-lead"><span class="event-action-icon">＋</span><span><strong>Add Lead</strong><small>Record a genuine opportunity</small></span></button></div>';
+  const namedRecords = '<section class="panel event-day-leads"><div class="panel-head"><div><h2>20Ks from this Event</h2><p>You: ' + (mine.length + mineLegacy) + ' · Event total: ' + total + '</p></div></div>' + (rows ? '<div class="twenty-k-list">' + rows + '</div>' : '<div class="event-lead-empty">Your named 20K records will appear here.</div>') + (legacy ? '<p class="helper legacy-count-note">' + legacy + ' historical 20K forms retained as unattributed Event activity.</p>' : '') + '</section>';
+  const leadSection = '<section class="panel event-day-leads"><div class="panel-head"><div><h2>Leads from this Event</h2></div><button class="text-link" data-route="leads">All Leads →</button></div>' + (leadRows ? '<div class="event-lead-list">' + leadRows + '</div>' : '<div class="event-lead-empty">No Leads originated from this Event yet.</div>') + '</section>';
+  return hero + progress + actions + namedRecords + leadSection;
+}
+function convertTwentyKToLead(recordId) {
+  const record = (state.twentyKRecords || []).find(item => item.id === recordId);
+  if (!record || !hasAccess(record.connectorId)) return;
+  if (record.leadId) { showToast('A Lead already exists for this 20K'); return; }
+  const activity = activityById(record.activityId);
+  const ownerId = record.generatedByPartnerId || state.currentUserId;
+  const received = record.eventDate || activity?.date || today;
+  const lead = { id: uid(), connectorId: record.connectorId, generatedByPartnerId: ownerId, currentOwnerId: ownerId, partnerId: ownerId, name: record.name, received, channel: '20K Event', activityId: record.activityId, origin20KId: record.id, homeStatus: 'Unknown', appointment: '', appointmentOutcome: '', appointmentDate: '', outcome: '', customerResult: '', partnerResult: '', followUp: false, reviewDate: '', becamePartner: false, archived: false, services: null, connectorCommission: 0, partnerCommission: 0, createdAt: new Date().toISOString(), version: 1, progression: [{ stage: 'Lead sent', date: received }], history: [{ date: today, action: 'Lead converted from named 20K' }] };
+  state.leads.unshift(lead);
+  record.leadId = lead.id; record.updatedAt = new Date().toISOString(); record.version = (record.version || 1) + 1;
+  commit('Linked 20K to Lead ' + lead.name, record.connectorId, 'twenty-k', record.id, 'update', { ...record });
+  commit('Added Lead ' + lead.name + ' from 20K', lead.connectorId, 'lead', lead.id, 'create', { ...lead });
+  state.selectedConnectorId = lead.connectorId; activeActivityId = lead.activityId; activeLeadId = lead.id; origin20KId = ''; forceUnlinkedLead = false; leadReturnRoute = 'eventday';
+  leadDraftSnapshot = structuredClone(lead); leadDraftHistoryLength = state.history.length; leadDraftOutboxLength = state.outbox.length; draftServices = null;
+  navigate('lead'); showToast('Lead created and linked');
+}
+function selectLeadOrigin20K(recordId) {
+  const record = (state.twentyKRecords || []).find(item => item.id === recordId);
+  if (!record || record.leadId) return;
+  origin20KId = record.id;
+  activeActivityId = record.activityId;
+  leadReturnRoute = 'eventday';
+  forceUnlinkedLead = false;
+  render();
+}
+
+function newLeadViewV07() {
+  const origin = (state.twentyKRecords || []).find(record => record.id === origin20KId);
+  const contextualActivityId = origin?.activityId || (!forceUnlinkedLead ? activeActivityId || (todayEvents().length === 1 ? todayEvents()[0].id : '') : '');
+  const contextual = !!contextualActivityId && !forceUnlinkedLead;
+  const eligible = contextual ? (state.twentyKRecords || []).filter(record => record.activityId === contextualActivityId && !record.leadId).sort((a,b) => b.createdAt.localeCompare(a.createdAt)) : [];
+  const channels = CHANNELS.map(channel => '<option ' + (channel === (contextual ? '20K Event' : 'Unknown') ? 'selected' : '') + '>' + channel + '</option>').join('');
+  const activities = activeConnectorActivities().filter(activity => activity.type === 'Event').map(activity => '<option value="' + activity.id + '" ' + (activity.id === contextualActivityId ? 'selected' : '') + '>' + escapeHtml(activity.name) + ' · ' + prettyDate(activity.date) + '</option>').join('');
+  const chips = !origin && contextual && eligible.length ? '<div class="field full"><label>Link an existing 20K from today</label><div class="filter-row lead-origin-chips">' + eligible.slice(0,5).map(record => '<button type="button" class="filter-chip" onclick="selectLeadOrigin20K(\'' + record.id + '\')">' + escapeHtml(record.name) + '</button>').join('') + '</div>' + (eligible.length > 5 ? '<details><summary>More 20Ks</summary><div class="filter-row">' + eligible.slice(5).map(record => '<button type="button" class="filter-chip" onclick="selectLeadOrigin20K(\'' + record.id + '\')">' + escapeHtml(record.name) + '</button>').join('') + '</div></details>' : '') + '</div>' : '';
+  return heading('Add a Lead', 'A first name is enough.', '<button class="btn btn-secondary" data-route="' + (leadReturnRoute || (contextual ? 'eventday' : 'leads')) + '">Cancel</button>') + '<div class="form-shell"><form class="panel" id="lead-form"><input type="hidden" name="origin20KId" value="' + (origin?.id || '') + '"><input type="hidden" name="activityId" value="' + (contextualActivityId || '') + '"><div class="form-grid">' + chips + '<div class="field full"><label for="lead-name">First name / short identifier</label><input id="lead-name" name="name" required maxlength="40" autocomplete="off" value="' + escapeHtml(origin?.name || '') + '" placeholder="e.g. Demo Lead 01"></div><div class="field"><label for="lead-date">Date received</label><input id="lead-date" name="received" type="date" value="' + (origin?.eventDate || activityById(contextualActivityId)?.date || today) + '" required></div>' + (contextual ? '<div class="field"><label>Channel</label><input value="20K Event" disabled><input type="hidden" name="channel" value="20K Event"></div><div class="field full"><label>Event</label><input value="' + escapeHtml(activityById(contextualActivityId)?.name || 'Event') + ' · ' + prettyDate(activityById(contextualActivityId)?.date) + '" disabled></div>' : '<div class="field"><label for="lead-channel">Channel</label><select id="lead-channel" name="channel" data-lead-channel>' + channels + '</select></div><div class="field full lead-event-field" hidden><label for="lead-activity">Event · select when Channel is 20K Event</label><select id="lead-activity" name="eventSelect"><option value="">Choose Event</option>' + activities + '</select></div>') + '<div class="field"><label>Generated by</label><input value="' + escapeHtml(currentUser().name) + '" disabled></div></div>' + (origin ? '<div class="callout" style="margin-top:14px">Linked to 20K at ' + escapeHtml(activityById(origin.activityId)?.name || 'Event') + ' · ' + prettyDate(origin.eventDate) + '</div>' : '') + '<div class="modal-actions"><button class="btn btn-primary" type="submit" name="submitMode" value="close">Save &amp; Close</button><button class="btn btn-secondary" type="submit" name="submitMode" value="open">Save &amp; Open Lead</button></div></form></div>';
+}
+function openTwentyKForm(activityId) {
+  const activity = activityById(activityId);
+  if (!activity || activity.type !== 'Event') return;
+  openModal('Add a 20K', '<form id="twenty-k-form"><div class="field"><label for="twenty-k-name">First name / short identifier</label><input id="twenty-k-name" name="name" required maxlength="40" autocomplete="off" placeholder="e.g. Demo Lead 01"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div></form>');
+  document.getElementById('twenty-k-form')?.setAttribute('data-activity-id', activityId);
+}
+function activityFormV07() {
+  if (createTodayEvent) return heading('Create today’s Event', 'Name today’s Event. The date and type are already set.') + '<div class="form-shell"><form id="activity-form" class="panel"><div class="field"><label>Event name</label><input name="name" required maxlength="80" placeholder="e.g. Saturday Training"></div><input type="hidden" name="date" value="' + today + '"><input type="hidden" name="type" value="Event"><div class="field" style="margin-top:12px"><label>Channel · optional</label><select name="channel">' + CHANNELS.map(channel => '<option>' + channel + '</option>').join('') + '</select></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-route="eventday">Cancel</button><button class="btn btn-primary" type="submit">Create Event</button></div></form></div>';
+  const item = activeActivityId ? activityById(activeActivityId) : null;
+  const types = ['Event','Campaign','Ongoing asset'].map(type => '<option ' + (type === (item?.type || 'Event') ? 'selected' : '') + '>' + type + '</option>').join('');
+  const channels = CHANNELS.map(channel => '<option ' + (channel === (item?.channel || CHANNELS[0]) ? 'selected' : '') + '>' + channel + '</option>').join('');
+  return heading(item ? 'Edit Activity' : 'Create an Activity', '20K records can only be added to Events.') + '<div class="form-shell"><form id="activity-form" class="panel"><div class="form-grid"><div class="field full"><label>Activity / Event name</label><input name="name" required maxlength="80" value="' + escapeHtml(item?.name || '') + '"></div><div class="field"><label>Date</label><input name="date" type="date" value="' + (item?.date || today) + '" required></div><div class="field"><label>Type</label><select name="type">' + types + '</select></div><div class="field full"><label>Channel</label><select name="channel">' + channels + '</select></div><div class="field full"><label>Notes · optional</label><textarea name="notes" maxlength="240">' + escapeHtml(item?.notes || '') + '</textarea></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-route="activities">Cancel</button><button type="submit" class="btn btn-primary">Save Activity</button></div></form></div>';
+}
+function eventDayView() {
+  const events = todayEvents();
+  const activity = events.find(item => item.id === activeActivityId) || (events.length === 1 ? events[0] : null);
+  if (events.length > 1 && !activity) {
+    return `${heading('Event Day', 'Which event are you working at today?')}<div class="activity-cards">${events.map(item => `<button class="event-card event-day-choice" data-select-eventday="${item.id}"><span class="event-title">${escapeHtml(item.name)}</span><span class="event-sub">${prettyDate(item.date)} · ${escapeHtml(item.channel)}</span><span class="card-arrow" aria-hidden="true">→</span></button>`).join('')}</div>`;
+  }
+  if (!activity) {
+    return `${heading('Event Day', 'Your quick workspace for today’s activity.')}<div class="event-day-empty panel"><span class="event-day-empty-icon" aria-hidden="true">🏀</span><h2>No Event today</h2><p>Create an Event to keep 20K counts and Leads together, or add a Lead without event attribution.</p><div class="event-day-empty-actions"><button class="btn btn-primary" data-action="newactivity">＋ Create today’s Event</button><button class="btn btn-secondary" data-action="newlead" data-unlinked-lead="true">Add a Lead without an Event</button></div><button class="text-link" data-route="activities">View all Activities →</button></div>`;
+  }
+  activeActivityId = activity.id;
+  const mine = statFor(activity.id, state.currentUserId);
+  const teamForms = state.stats.filter(stat => stat.activityId === activity.id).reduce((sum, stat) => sum + Number(stat.forms20K || 0), 0);
+  const leads = activityLeads(activity.id).sort((a, b) => (b.received || '').localeCompare(a.received || ''));
+  const recent = leads.slice(0, 5);
+  return `${heading('Event Day', 'Log 20K forms and genuine Leads for today’s event.', `<button class="btn btn-secondary" data-edit-activity="${activity.id}">Edit Event</button>`)}<div class="event-day-hero"><div><div class="eyebrow">TODAY’S EVENT · ${prettyDate(activity.date)}</div><h2>${escapeHtml(activity.name)}</h2><p>${escapeHtml(activity.channel)} · ${leads.length} ${leads.length === 1 ? 'Lead' : 'Leads'}</p></div><span class="badge green">Today</span></div><div class="event-day-actions"><div class="event-count-card"><div><span class="event-count-label">My 20K forms</span><strong class="event-count-value">${mine}</strong><small>Team total · ${teamForms}</small></div><button class="event-day-button event-count-button" data-count="1" aria-label="Add one 20K form to my count"><strong>＋ 20K</strong><small>Add one form</small></button></div><button class="event-day-button event-lead-button" data-action="event-fast-lead"><span class="event-lead-plus" aria-hidden="true">＋</span><strong>Add a Lead</strong><small>Just a first name to start</small></button></div><section class="panel event-day-leads"><div class="panel-head"><div><h2>Leads from today</h2><p>Update the next step whenever something happens</p></div><button class="text-link" data-route="leads">All Leads →</button></div>${recent.length ? `<div class="event-lead-list">${recent.map(lead => `<article class="event-lead-row"><div><strong>${escapeHtml(lead.name)}</strong><span>${escapeHtml(progressionLabel(lead))}${lead.followUp ? ' · Follow-up set' : ''}</span></div><button class="btn btn-secondary btn-sm" data-edit-lead="${lead.id}">Update</button></article>`).join('')}${leads.length > recent.length ? `<button class="text-link event-more-leads" data-route="leads">View all ${leads.length} event Leads →</button>` : ''}</div>` : '<div class="event-lead-empty">No Leads linked to this Event yet. Add one when you submit a genuine Connector Lead.</div>'}</section>`;
+}
+function leadsView() {
+  const query = state.search.toLowerCase();
+  const scoped = isConnectorAdmin() && leadScope === 'my'
+    ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId)
+    : selectedLeads();
+  const filtered = scoped.filter(lead => {
+    const match = !query || `${lead.name} ${lead.channel} ${customerOutcome(lead)} ${userName(lead.generatedByPartnerId || lead.partnerId)}`.toLowerCase().includes(query);
+    const metric = leadFilter === 'leads' || leadFilter === 'all' ? true
+      : leadFilter === 'set' ? historyHas(lead, 'Booked') || ['Booked', 'Sat'].includes(lead.appointment)
+      : leadFilter === 'sat' ? historyHas(lead, 'Sat') || lead.appointment === 'Sat'
+      : leadFilter === 'customers' ? outcomeIsCustomer(lead)
+      : leadFilter === 'partners' ? partnerOutcome(lead) === 'Became a UW Partner' || lead.becamePartner
+      : true;
+    return match && metric;
+  });
+  const labels = { leads: 'Leads', set: 'Appointments set', sat: 'Appointments sat', customers: 'Customers', partners: 'Partners' };
+  const title = labels[leadFilter] || 'Leads';
+  const scopeSwitch = isConnectorAdmin() ? `<div class="filter-row"><button class="filter-chip ${leadScope === 'my' ? 'active' : ''}" data-lead-scope="my">My Leads</button><button class="filter-chip ${leadScope === 'team' ? 'active' : ''}" data-lead-scope="team">Team Leads</button></div>` : '';
+  const followupCount = scoped.filter(lead => lead.followUp).length;
+  return `${heading(title, `${filtered.length} ${filtered.length === 1 ? 'person' : 'people'} · Add and update Connector Leads.`, `<button class="btn btn-secondary followups-link" data-route="followups">Follow-ups${followupCount ? ` · ${followupCount}` : ''}</button><button class="btn btn-primary" data-action="newlead">＋ Add Lead</button>`)}${scopeSwitch}${leadFilter !== 'all' ? `<div class="callout" style="margin-bottom:12px">Showing ${escapeHtml(title.toLowerCase())} from ${state.period.toLowerCase()}.</div>` : ''}<div class="leads-toolbar"><label class="searchbox"><span class="visually-hidden">Search Leads</span><input data-search placeholder="Search by name or source" value="${escapeHtml(state.search)}" aria-label="Search Leads"></label><span class="small muted">${filtered.length} active</span></div><div class="lead-list">${filtered.length ? filtered.map(leadCard).join('') : '<div class="empty-state"><strong>No Leads match</strong>Add a Lead or adjust your search.</div>'}</div>`;
+}
+function inboxView() {
+  const base = isConnectorAdmin() && leadScope === 'my'
+    ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId)
+    : selectedLeads();
+  const leads = needsUpdateLeads(base);
+  const scopeSwitch = isConnectorAdmin() ? `<div class="filter-row"><button class="filter-chip ${leadScope === 'my' ? 'active' : ''}" data-lead-scope="my">My Inbox</button><button class="filter-chip ${leadScope === 'team' ? 'active' : ''}" data-lead-scope="team">Team Inbox</button></div>` : '';
+  return `${heading('Action Inbox', leads.length ? `${leads.length} ${leads.length === 1 ? 'Lead needs' : 'Leads need'} an update.` : 'You’re up to date.', `<span class="badge ${leads.length ? 'pink' : 'green'}">${leads.length} to update</span>`)}${scopeSwitch}<div class="lead-list">${leads.length ? leads.map(lead => {
+    const next = appointmentOutcome(lead) === 'Sat' ? 'Add the customer or Partner result'
+      : historyHas(lead, 'Booked') || ['Booked', 'Sat'].includes(lead.appointment) ? 'Record what happened at the appointment'
+      : 'Choose the next progression step';
+    return `<article class="lead-card inbox-card"><span class="activity-symbol">!</span><div class="lead-main"><strong>${escapeHtml(lead.name)}</strong><p>${escapeHtml(contextLine(lead))}</p><div class="lead-tags"><span class="status booked">${escapeHtml(next)}</span></div></div><button class="btn btn-soft" data-edit-lead="${lead.id}">Update Lead</button></article>`;
+  }).join('') : '<div class="empty-state"><strong>Inbox zero</strong><p>Incomplete progression will appear here. Deliberate future Follow-ups stay in the Leads section.</p></div>'}</div>`;
+}
+function chooseConnector() {
+  const allowed = state.connectors.filter(item => hasAccess(item.id));
+  if (!allowed.length) { showToast('No Connectors available'); return; }
+  const choices = allowed.map(item => '<button type="button" class="connector-card connector-choice ' + (item.id === state.selectedConnectorId ? 'is-current' : '') + '" data-select-connector="' + escapeHtml(item.id) + '"><span class="connector-logo">' + logoMarkup(item) + '</span><span class="connector-meta"><strong>' + escapeHtml(item.name) + '</strong><span>' + escapeHtml(currentConnectorRole(item.id) === 'Admin' ? 'Connector Admin' : 'Partner') + '</span></span>' + (item.id === state.selectedConnectorId ? '<span class="badge green">Current</span>' : '<span class="connector-choice-open">Open →</span>') + '</button>').join('');
+  openModal('Switch Connector', '<p class="small muted">Choose the organisation you want to work with. Your Leads, activities and results will follow that Connector. Any pending cloud changes remain queued.</p><div class="lead-list connector-switch-list">' + choices + '</div>');
+}
+function chooseProfile() {
+  const user = currentUser();
+  if (cloudCrmReady && !demoMode) {
+    const profile = cloudSession?.profile || {};
+    openModal('Profile and setup', '<div class="profile-identity"><span class="avatar">' + avatarMarkup(user) + '</span><div><strong>' + escapeHtml(profile.name || user.name) + '</strong><small>UW Partner ID: ' + escapeHtml(profile.partnerId || state.currentUserId) + '</small></div></div><p class="small muted">You are signed in with your Team Triumph tools account. To use a different Partner identity, sign out first.</p><div class="profile-menu-actions"><button class="btn btn-secondary" data-route="connectors">⚙ Setup / Admin</button><button class="btn btn-secondary" data-route="about">About · v' + escapeHtml(APP.version) + '</button><button class="btn btn-secondary" data-cloud-action="logout">Sign out</button></div>');
+    return;
+  }
+  openModal('Profile and setup', `<form id="profile-form"><div class="field"><label>Your profile name</label><input name="name" maxlength="60" required value="${escapeHtml(user.name)}"></div><div class="field" style="margin-top:10px"><label>Profile photo · optional</label><input name="avatar" type="file" accept="image/*"></div><div class="modal-actions"><button class="btn btn-primary">Save profile</button>${user.role === 'Admin' ? '<button type="button" class="btn btn-secondary" data-action="new-profile">＋ Create profile</button>' : ''}</div></form><div class="lead-list" style="margin-top:15px">${state.users.filter(item => item.active).map(item => `<button class="connector-card profile-option" data-switch-user="${item.id}"><span class="avatar">${avatarMarkup(item)}</span><span class="connector-meta"><strong>${escapeHtml(item.name)}</strong><span>${item.role === 'Admin' ? 'Team Admin' : 'Partner'}</span></span>${item.id === state.currentUserId ? '<span class="badge green">Current</span>' : ''}</button>`).join('')}</div><div class="profile-menu-actions"><button class="btn btn-secondary" data-route="connectors">⚙ Setup / Admin</button><button class="btn btn-secondary" data-route="about">About · v${escapeHtml(APP.version)}</button></div>`);
+}
+function openNewProfileForm() { openModal('Create profile', `<form id="create-profile-form"><div class="field"><label>Person / profile name</label><input name="name" required maxlength="60"></div><div class="field" style="margin-top:10px"><label>Profile photo · optional</label><input name="avatar" type="file" accept="image/*"></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="profile">Cancel</button><button class="btn btn-primary">Create profile</button></div></form>`); }
+function renderCloudLogin() {
+  const configured = window.ConnectorTrackerCloud?.configured;
+  app.innerHTML = `<main class="cloud-auth-page"><section class="cloud-auth-card"><div class="cloud-auth-brand"><span class="brand-mark"><img class="cat-brand-icon" src="icon.svg?v=0.11.2" alt=""></span><div><strong>Connector Activity Tracker</strong><small>Independent organisation workspace</small></div></div><div class="preview-notice" role="note"><strong>CAT v0.11.2 preview</strong> · This is a test interface connected to the existing live CAT Cloud. You can try switching Connectors. Any records you edit will affect the live cloud database.</div><h1>Sign in</h1><p>Use your UW Partner ID with the separate Team Triumph tools password.</p><div class="cloud-password-hint"><strong>Important:</strong> This is the password you use for tools such as Appointment Companion - <strong>not your UW Partner Portal password.</strong></div>${!configured ? '<div class="cloud-message cloud-message-info">Cloud sign-in is not configured yet. The administrator needs to deploy the CAT Cloud script and add its public endpoint.</div>' : ''}${cloudError ? `<div class="cloud-message cloud-message-error" role="alert">${escapeHtml(cloudError)}</div>` : ''}<form id="tracker-login-form"><label class="cloud-field">Partner ID<input name="partnerId" autocomplete="username" required maxlength="120" value="${escapeHtml(cloudPartnerIdDraft)}" ${cloudBusy || !configured ? 'disabled' : ''}></label><label class="cloud-field">Team Triumph tools password<input name="password" type="password" autocomplete="current-password" required maxlength="512" ${cloudBusy || !configured ? 'disabled' : ''}></label><button class="btn btn-primary cloud-signin" type="submit" ${cloudBusy || !configured ? 'disabled' : ''}>${cloudBusy ? 'Signing in…' : 'Sign in securely'}</button></form><p class="cloud-auth-note">CAT checks this password securely through the shared Team Triumph sign-in service and does not save it.</p></section><footer>Connector Activity Tracker · v${escapeHtml(APP.version)}</footer></main>`;
+}
+function renderCloudWorkspace() {
+  const profile = cloudSession?.profile || {};
+  const connectors = cloudSession?.connectors || [];
+  if (!connectors.some(item => item.id === cloudConnectorId)) cloudConnectorId = connectors[0]?.id || '';
+  const selectedConnector = connectors.find(item => item.id === cloudConnectorId);
+  const currentRecord = cloudTestRecord?.connectorId === cloudConnectorId ? cloudTestRecord : null;
+  const busyText = cloudBusy ? '<div class="cloud-message cloud-message-info">Working with CAT Cloud…</div>' : '';
+  const errorText = cloudError ? `<div class="cloud-message cloud-message-error" role="alert">${escapeHtml(cloudError)}</div>` : '';
+  const avatar = profile.photoUrl ? `<img src="${escapeHtml(profile.photoUrl)}" alt="" referrerpolicy="no-referrer">` : escapeHtml((profile.name || '?').slice(0, 1).toUpperCase());
+  app.innerHTML = `<main class="cloud-workspace"><header class="cloud-workspace-head"><div class="cloud-auth-brand"><span class="brand-mark"><img class="cat-brand-icon" src="icon.svg?v=0.11.2" alt=""></span><div><strong>Connector Activity Tracker</strong><small>Authenticated cloud workspace</small></div></div><div class="cloud-user"><span class="cloud-avatar">${avatar}</span><span><strong>${escapeHtml(profile.name || profile.partnerId)}</strong><small>${escapeHtml(profile.partnerId)}</small></span><button type="button" class="btn btn-secondary btn-sm" data-cloud-action="logout" ${cloudBusy ? 'disabled' : ''}>Sign out</button></div></header><section class="cloud-workspace-body"><div class="page-heading"><div><h1>Welcome, ${escapeHtml(profile.name || 'Partner')}</h1><p>Your shared Partner identity is verified. Connector access is checked by the server.</p></div><span class="badge green">Authenticated</span></div>${connectors.length > 1 ? `<label class="cloud-field cloud-connector-picker">Connector<select id="cloud-connector-select">${connectors.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === cloudConnectorId ? 'selected' : ''}>${escapeHtml(item.name)} · ${escapeHtml(item.role)}</option>`).join('')}</select></label>` : `<div class="cloud-connector-label">Connector · <strong>${escapeHtml(selectedConnector?.name || 'None assigned')}</strong></div>`}${busyText}${errorText}<section class="panel cloud-phase-card"><div class="panel-head"><div><h2>Phase 1 cloud check</h2><p>This private test record verifies cloud create, read and update.</p></div><span class="badge ${currentRecord ? 'green' : 'booked'}">${currentRecord ? 'Saved in cloud' : 'No test record yet'}</span></div><form id="cloud-test-form"><label class="cloud-field">Test message <small>Use test text only. Do not enter a person's or customer's details.</small><textarea name="message" maxlength="120" rows="3" placeholder="For example: CAT device sync check" ${cloudBusy || !selectedConnector ? 'disabled' : ''}>${escapeHtml(currentRecord?.message ?? cloudMessage)}</textarea></label><button class="btn btn-primary" type="submit" ${cloudBusy || !selectedConnector ? 'disabled' : ''}>${cloudBusy ? 'Saving…' : currentRecord ? 'Update cloud test record' : 'Create cloud test record'}</button></form>${currentRecord ? `<p class="cloud-record-meta">Cloud acknowledged · version ${Number(currentRecord.version)} · ${escapeHtml(currentRecord.updatedAt ? new Date(currentRecord.updatedAt).toLocaleString('en-GB') : '')}</p>` : ''}</section><section class="panel cloud-phase-card"><h2>CRM workflow status</h2><p>The approved Event Day, Lead, 20K, appointment, follow-up and reporting screens are preserved in the local demo. CRM changes save locally first and are then synchronised with CAT Cloud. Check the sync indicator for confirmation.</p></section><details class="panel cloud-phase-card cloud-about"><summary>About · v${escapeHtml(APP.version)}</summary><p class="muted">${escapeHtml(APP.summary[0] || '')}</p><ul class="about-list">${APP.summary.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul><div class="cloud-about-history">${APP.history.slice(0, 4).map(item => `<p><strong>v${escapeHtml(item.version)}</strong> · ${escapeHtml(item.summary)}</p>`).join('')}</div></details></section></main>`;
+}
+function renderCloudGate() {
+  if (demoMode || cloudCrmReady) return false;
+  if (!cloudSession) renderCloudLogin();
+  else app.innerHTML = `<main class="cloud-auth-page"><section class="cloud-auth-card"><strong>Connector Activity Tracker</strong><h1>${cloudBusy ? 'Loading your workspace…' : 'Cloud workspace needs attention'}</h1><p>${escapeHtml(cloudError || 'CAT is checking your access and loading shared Connector records.')}</p>${!cloudBusy ? '<button class="btn btn-primary" data-cloud-action="reload">Try again</button>' : ''}<button class="btn btn-secondary" data-cloud-action="logout">Sign out</button></section></main>`;
+  return true;
+}
+const cloudCollectionByEntity = Object.freeze({
+  activity: 'activities', 'twenty-k': 'twentyKRecords', lead: 'leads',
+  'activity-partner-stat': 'stats', 'customer-result': 'customerResults',
+  'generated-partner': 'generatedPartners', 'commission-rule': 'commissionRules'
+});
+function cloudRecordKey(connectorId, entity, recordId) { return `${connectorId}::${entity}::${recordId}`; }
+function cloudApplyRecord(target, entity, connectorId, recordId, payload, deleted = false) {
+  const collection = cloudCollectionByEntity[entity]; if (!collection) return;
+  target[collection] ||= [];
+  const index = target[collection].findIndex(item => item.id === recordId && item.connectorId === connectorId);
+  if (deleted) { if (index >= 0) target[collection].splice(index, 1); return; }
+  const value = { ...payload, id: recordId, connectorId };
+  if (index >= 0) target[collection][index] = value; else target[collection].push(value);
+}
+function resolveCloudOutboxPayload(change, source = state) {
+  if (change.payload) return change.payload;
+  if (change.entity === 'connector') return source.connectors.find(item => item.id === change.entityId) || null;
+  const collection = cloudCollectionByEntity[change.entity];
+  if (!collection) return null;
+  const items = source[collection] || [];
+  return items.find(item => item.id === change.entityId) || (change.entity === 'generated-partner' ? items.find(item => item.originLeadId === change.entityId) : null) || null;
+}
+function applyPendingCloudChanges(target, pending, source) {
+  pending.forEach(change => {
+    if (!target.connectors.some(item => item.id === change.connectorId)) return;
+    const payload = resolveCloudOutboxPayload(change, source);
+    if (change.entity === 'connector') {
+      if (payload && !target.connectors.some(item => item.id === payload.id)) target.connectors.push(payload);
+      return;
+    }
+    if (!payload) return;
+    cloudApplyRecord(target, change.entity, change.connectorId, payload.id, payload, change.action === 'delete');
+  });
+}
+function applyCloudWorkspace(remote, local = null) {
+  const next = initialState();
+  ['activities', 'twentyKRecords', 'leads', 'stats', 'customerResults', 'generatedPartners', 'commissionRules', 'history'].forEach(key => { next[key] = []; });
+  next.connectors = remote.connectors || [];
+  next.access = remote.access || [];
+  next.users = remote.users || [];
+  next.currentUserId = cloudSession.profile.partnerId;
+  const current = next.users.find(item => item.id === next.currentUserId);
+  if (current) Object.assign(current, { name: cloudSession.profile.name || current.name, email: cloudSession.profile.email || '', mobile: cloudSession.profile.mobile || '', avatar: cloudSession.profile.photoUrl || '' });
+  next.outbox = Array.isArray(local?.outbox) ? local.outbox : [];
+  next.period = local?.period || 'This month';
+  next.reportTab = local?.reportTab || 'team';
+  next.route = ['lead', 'event', 'eventfollowups'].includes(local?.route) ? 'home' : (local?.route || 'home');
+  next.selectedConnectorId = next.connectors.some(item => item.id === local?.selectedConnectorId) ? local.selectedConnectorId : (next.connectors[0]?.id || '');
+  next.history = Array.isArray(local?.history) ? local.history : [];
+  cloudVersions.clear();
+  (remote.records || []).forEach(record => {
+    cloudVersions.set(cloudRecordKey(record.connectorId, record.entity, record.id), Number(record.version || 0));
+    cloudApplyRecord(next, record.entity, record.connectorId, record.id, record.payload);
+  });
+  applyPendingCloudChanges(next, next.outbox, local || next);
+  state = next;
+  cloudConnectorId = state.selectedConnectorId;
+  cloudCrmReady = true;
+  demoMode = false;
+}
+async function fetchCloudWorkspace({ initial = false } = {}) {
+  if (!cloudSession) return;
+  if (cloudRefreshPromise) return cloudRefreshPromise;
+  cloudRefreshPromise = (async () => {
+    const remote = await ConnectorTrackerCloud.getWorkspace();
+    const local = initial ? await loadState(stateStorageKey()) : state;
+    applyCloudWorkspace(remote, local);
+    await persist();
+    return remote;
+  })();
+  try { return await cloudRefreshPromise; }
+  finally { cloudRefreshPromise = null; }
+}
+async function syncCloudOutbox() {
+  if (!cloudSession || !cloudCrmReady || !navigator.onLine) { cloudSyncState = state?.outbox?.length ? 'queued' : 'idle'; updateCloudIndicator(); return; }
+  if (cloudSyncPromise) return cloudSyncPromise;
+  cloudSyncPromise = (async () => {
+    cloudSyncError = ''; cloudSyncState = 'saving'; updateCloudIndicator();
+    try {
+      while (state.outbox.length) {
+        const change = state.outbox[0];
+        if (!state.connectors.some(item => item.id === change.connectorId)) throw new Error('Access to a Connector in the local sync queue is no longer authorised. The pending changes remain stored on this device.');
+        const payload = resolveCloudOutboxPayload(change);
+        if (!payload) { throw new Error('A queued local change is missing its record. It has been kept on this device; refresh to review it.'); }
+        if (change.entity === 'connector') {
+          if (String(payload.logo || '').length > 12000) throw new Error('This Connector logo is too large for the cloud request. Choose a smaller image or use the Connector colour and symbol.');
+          await ConnectorTrackerCloud.saveConnector(payload);
+        } else {
+          const key = cloudRecordKey(change.connectorId, change.entity, payload.id);
+          const baseVersion = Number.isInteger(change.baseCloudVersion) ? change.baseCloudVersion : (cloudVersions.get(key) || 0);
+          const result = change.action === 'delete'
+            ? await ConnectorTrackerCloud.deleteRecord(change.entity, change.connectorId, payload.id, baseVersion, change.transactionId)
+            : await ConnectorTrackerCloud.saveRecord(change.entity, change.connectorId, payload.id, payload, baseVersion, change.transactionId);
+          cloudVersions.set(key, Number(result.version));
+        }
+        state.outbox.shift();
+        cloudSyncError = '';
+        await persist();
+      }
+      cloudSyncState = 'saved';
+    } catch (error) {
+      cloudSyncError = error.message || 'Cloud sync failed.';
+      cloudSyncState = 'error';
+      if (/session|sign in again|revoked|inactive|not authorised/i.test(cloudSyncError)) { cloudSession = null; cloudCrmReady = false; }
+    } finally {
+      cloudSyncPromise = null; updateCloudIndicator();
+      if (cloudSyncError && cloudCrmReady) showToast('Saved on this device; cloud sync needs attention');
+      if (!cloudCrmReady) renderCloudGate();
+    }
+  })();
+  return cloudSyncPromise;
+}
+function updateCloudIndicator() {
+  const pill = document.querySelector('.sync-pill'); if (!pill || !cloudCrmReady) return;
+  if (cloudSyncError) { pill.textContent = '● Local copy · sync needs attention'; pill.title = cloudSyncError; }
+  else if (state.outbox.length || cloudSyncState === 'saving') { pill.textContent = navigator.onLine ? '● Saving to cloud…' : '● Saved locally · waiting for connection'; pill.title = state.outbox.length + ' change(s) waiting to sync.'; }
+  else { pill.textContent = '● Synced to cloud'; pill.title = 'All changes have been acknowledged by CAT Cloud.'; }
+  const localState = document.querySelector('.local-state strong');
+  if (localState) localState.textContent = cloudSyncError ? 'Saved locally · cloud sync needs attention' : state.outbox.length ? 'Saved locally · cloud sync pending' : 'Cloud changes acknowledged';
+}
+async function reloadCloudWorkspace({ initial = false, rerender = true } = {}) {
+  if (!cloudSession) return;
+  try {
+    await fetchCloudWorkspace({ initial });
+    cloudSyncError = '';
+    if (state.outbox.length) await syncCloudOutbox();
+    cloudBusy = false; cloudError = '';
+    if (rerender && cloudCrmReady) render();
+  } catch (error) {
+    cloudBusy = false;
+    cloudError = error.message;
+    if (/session|sign in again|revoked|inactive|not authorised/i.test(error.message)) { cloudSession = null; cloudCrmReady = false; }
+    else if (cloudCrmReady) { cloudSyncError = error.message; cloudSyncState = 'error'; updateCloudIndicator(); }
+    renderCloudGate();
+  }
+}
+window.addEventListener('online', () => { if (cloudCrmReady) syncCloudOutbox(); else if (cloudSession) reloadCloudWorkspace({ rerender: false }); });
+window.addEventListener('focus', () => { if (cloudSession && cloudCrmReady && navigator.onLine && !state.outbox.length) reloadCloudWorkspace({ rerender: false }); });
+setInterval(() => { if (cloudSession && cloudCrmReady && navigator.onLine && !state.outbox.length && !document.getElementById('modal-wrap')) reloadCloudWorkspace({ rerender: false }); }, 45000);
+function render() {
+  if (renderCloudGate()) return;
+  if (publicReportOnly) {
+    if (publicReportError) { app.innerHTML = '<main class="content"><div class="panel"><h1>Report unavailable</h1><p class="muted">This report is not published on this device. The local prototype does not provide a public cloud report endpoint.</p></div></main>'; return; }
+    app.innerHTML = `<main class="content"><div class="report-preview">${sharedReport()}</div></main>`;
+    return;
+  }
+  const views = { home: homeViewV07, eventday: eventDayV07, connectors: cloudConnectorView, about: aboutView, activities: activitiesView, newactivity: activityFormV07, newlead: newLeadViewV07, leads: leadsView, lead: leadEditViewV07, inbox: inboxViewV07, followups: () => followupsView(), event: eventDetailView, eventfollowups: () => followupsView(activeActivityId), progress: progressView, reports: reportsView };
+  const titles = { home: 'Event Day', eventday: 'Event Day', connectors: 'Setup / Admin', about: 'About', activities: 'Activities', newactivity: 'Activity', newlead: 'Add a Lead', leads: 'Leads', lead: 'Update Lead', inbox: 'Action Inbox', followups: 'Follow-ups', event: activityById(activeActivityId)?.name || 'Event detail', eventfollowups: 'Event Follow-ups', progress: 'Results', reports: 'Detailed reports' };
+  const view = views[state.route] || eventDayView;
+  app.innerHTML = shell(view(), titles[state.route] || 'Event Day').replaceAll('Home status', 'Residential status');
+  const themeColor = document.querySelector('meta[name="theme-color"]'); if (themeColor) themeColor.content = safeHex(connector()?.primaryColor) || '#351065';
+  const topActions = app.querySelector('.top-actions');
+  if (topActions) {
+    const count = needsUpdateLeads(selectedLeads()).length;
+    const button = document.createElement('button');
+    button.className = 'icon-btn inbox-top-button'; button.dataset.route = 'inbox'; button.title = 'Action Inbox'; button.setAttribute('aria-label', 'Action Inbox, ' + count + ' actions');
+    button.innerHTML = '📥' + (count ? '<span class="inbox-count">' + count + '</span>' : '');
+    const profile = topActions.querySelector('.profile-icon');
+    topActions.insertBefore(button, profile || null);
+  }
+  const sectionClass = ['leads', 'lead', 'newlead', 'followups'].includes(state.route) ? 'leads'
+    : ['progress', 'reports'].includes(state.route) ? 'results'
+    : state.route === 'inbox' ? 'inbox'
+    : ['activities', 'newactivity', 'event', 'eventfollowups'].includes(state.route) ? 'activities'
+    : state.route === 'eventday' ? 'eventday'
+    : ['connectors', 'about'].includes(state.route) ? 'admin'
+    : 'home';
+  app.querySelector('.app-shell')?.classList.add(`section-${sectionClass}`);
+  if (state.route === 'followups') app.querySelector('.content')?.insertAdjacentHTML('afterbegin', '<button class="context-back" data-route="leads">‹ Leads</button>');
+  if (state.route === 'newlead' && !forceUnlinkedLead && todayEvents().length === 1 && !activeActivityId) {
+    app.querySelector('#lead-form')?.insertAdjacentHTML('beforebegin', `<div class="today-callout lead-event-suggestion"><strong>Are you at ${escapeHtml(todayEvents()[0].name)} today?</strong><span>Today’s Event can be linked automatically.</span></div>`);
+  }
+  if (state.route === 'lead') app.querySelector('[data-action="save-lead"]')?.insertAdjacentHTML('beforebegin', '<button class="btn btn-secondary" data-action="cancel-lead">Cancel changes</button>');
+  if (state.route === 'connectors') app.querySelector('.content')?.insertAdjacentHTML('beforeend', `<div class="admin-shortcuts"><button class="btn btn-secondary" data-route="about">About · v${escapeHtml(APP.version)}</button><button class="btn btn-secondary" data-admin-rules>Commission rules / reference</button></div>`);
+  if (state.route === 'progress') app.querySelector('.content')?.insertAdjacentHTML('beforeend', '<button class="btn btn-secondary detailed-reports-link" data-route="reports">Detailed reports, channels and trends →</button>');
+}
+function leadEditViewV07() {
+  const lead = state.leads.find(item => item.id === activeLeadId);
+  if (!lead || !hasAccess(lead.connectorId) || (!isConnectorAdmin(lead.connectorId) && (lead.currentOwnerId || lead.partnerId) !== state.currentUserId)) return heading('Lead not available') + '<button class="btn btn-secondary" data-route="leads">Back to Leads</button>';
+  const set = lead.appointment === 'Booked' || !!appointmentOutcome(lead);
+  const sat = appointmentOutcome(lead) === 'Sat';
+  const customer = customerOutcome(lead); const partner = partnerOutcome(lead);
+  const services = draftServices || latestResult(lead.id)?.services || lead.services || { energy:false, broadband:false, boilerCover:false, essentials:0, unlimited:0 };
+  const preview = commissionFor(services, today);
+  const eventChoices = activeConnectorActivities().map(activity => '<option value="' + activity.id + '" ' + (activity.id === lead.activityId ? 'selected' : '') + '>' + escapeHtml(activity.name) + ' · ' + prettyDate(activity.date) + '</option>').join('');
+  const milestone = '<section class="panel lead-progression"><h2>Progress</h2><div class="lead-stage-current">Lead sent</div><div class="milestone-row"><button class="choice-card ' + (lead.quoteSentAt || historyHas(lead,'Quote sent') ? 'active' : '') + '" data-set-progress="Quote sent">' + (lead.quoteSentAt || historyHas(lead,'Quote sent') ? 'Quote sent ✓' : 'Quote sent') + '</button><button class="choice-card ' + (set ? 'active' : '') + '" data-set-appointment="Booked">Appointment set' + (set ? ' ✓' : '') + '</button></div>' + (set ? '<div class="field" style="margin-top:10px"><label>Appointment date</label><input type="date" data-appointment-date value="' + (lead.appointmentDate || '') + '"></div><div class="section-title">Appointment outcome</div><div class="appointment-outcomes">' + [['Sat','Sat'],['Cancelled','Cancelled'],['Ghosted / No-show','Ghosted']].map(([value,label]) => '<button class="choice-card ' + (appointmentOutcome(lead) === value ? 'active' : '') + '" data-set-appointment="' + value + '">' + label + '</button>').join('') + '</div>' : '') + (!lead.appointmentDate && set ? '<p class="validation-message">Choose an appointment date before saving.</p>' : '') + '<div class="lead-tags">' + (lead.quoteSentAt || historyHas(lead,'Quote sent') ? '<span class="status booked">Quote sent · ' + prettyDate(lead.quoteSentAt || stageDate(lead,'Quote sent')) + '</span>' : '') + (set ? '<span class="status booked">Appointment set · ' + prettyDate(lead.appointmentDate || stageDate(lead,'Booked') || lead.received) + '</span>' : '') + '</div></section>';
+  const customerChoices = CUSTOMER_OUTCOMES.map(value => '<button class="choice-card ' + (customer === value ? 'active' : '') + '" data-set-customer="' + value + '">' + value + '</button>').join('');
+  const partnerChoices = PARTNER_OUTCOMES.map(value => '<button class="choice-card ' + (partner === value ? 'active' : '') + '" data-set-partner-result="' + value + '">' + value + '</button>').join('');
+  const customerDetails = customer === 'Customer signed up' || customer === 'Existing UW customer helped' ? '<div class="section-title">Customer products and commission</div><div class="product-grid">' + [['energy','⚡ Energy'],['broadband','🛜 Broadband'],['boilerCover','🛠️ Boiler/Home Cover']].map(([key,label]) => '<label class="product-choice"><input type="checkbox" data-product="' + key + '" ' + ((services[key] ?? (key === 'boilerCover' ? services.insurance : false)) ? 'checked' : '') + '> ' + label + '</label>').join('') + '</div><div class="section-title">📱 Mobile</div>' + [['essentials','📱 Essentials SIM · £6'],['unlimited','📱 Unlimited SIM · £13']].map(([key,label]) => '<div class="sim-quantity-block"><strong>' + label + '</strong><div class="sim-quantity-grid">' + [1,2,3,4].map(value => '<button type="button" class="sim-quantity ' + (Number(services[key] || 0) === value ? 'active' : '') + '" data-sim="' + key + ':' + value + '" aria-pressed="' + (Number(services[key] || 0) === value) + '">' + value + '</button>').join('') + '</div></div>').join('') + '<p class="helper sim-qualifying-note">Basket quantity is shown above. Essentials counts as 1 qualifying service; Unlimited counts up to 2.</p><div class="money-pair"><div class="money-box connector-income"><strong>' + fmtMoney(preview.connector) + '</strong><span>Connector income · 50%</span></div><div class="money-box partner-earnings"><strong>' + fmtMoney(preview.partner) + '</strong><span>Partner earnings</span></div></div><p class="helper">' + preview.qualifyingServices + ' qualifying services</p>' : '';
+  const secondaryCustomer = customer === 'Existing UW customer helped' ? '' : '<details class="secondary-result"><summary>Other customer result</summary><button class="choice-card ' + (customer === 'Existing UW customer helped' ? 'active' : '') + '" data-set-customer="Existing UW customer helped">Existing UW customer helped</button></details>';
+  const followup = customer === 'No for now' || partner === 'No for now' ? '<div class="callout" style="margin-top:12px"><strong>Follow this Lead up?</strong><p class="small">Use the Follow-up Required controls below to choose a date.</p>' + (lead.followUp && lead.reviewDate ? '<small>Follow-up on ' + prettyDate(lead.reviewDate) + '</small>' : '') + '</div>' : '';
+  const outcomes = sat ? '<section class="panel outcome-panel" id="appointment-outcome"><h2>Appointment outcome</h2><h3>Customer result</h3><div class="outcome-grid">' + customerChoices + '</div>' + secondaryCustomer + customerDetails + followup + '<h3 class="partner-result-title">Partner result</h3><div class="outcome-grid">' + partnerChoices + '</div></section>' : '';
+  const history = (lead.history || []).slice().reverse().map(item => '<div class="activity-row"><span class="activity-symbol">◉</span><div class="activity-copy"><strong>' + escapeHtml(item.action) + '</strong><small>' + prettyDate(item.date) + '</small></div></div>').join('');
+  const owner = isConnectorAdmin(lead.connectorId) ? '<details class="panel" style="margin-top:12px"><summary>Current owner</summary><select data-owner-select>' + state.users.filter(user => user.active).map(user => '<option value="' + user.id + '" ' + (user.id === (lead.currentOwnerId || lead.partnerId) ? 'selected' : '') + '>' + escapeHtml(user.name) + '</option>').join('') + '</select></details>' : '';
+  const home = '<section class="panel"><h2>Homeownership</h2><div class="filter-row">' + [['Homeowner','Homeowner'],['Renting/Tenant','Renting / Tenant'],['Unknown','Unknown / not established']].map(([value,label]) => '<button type="button" class="filter-chip ' + ((lead.homeStatus || 'Unknown') === value ? 'active' : '') + '" data-home-status="' + value + '">' + label + '</button>').join('') + '</div></section>';
+  const followupSection = '<section class="panel"><label class="product-choice"><input type="checkbox" data-set-followup ' + (lead.followUp ? 'checked' : '') + '> Follow-up required</label>' + (lead.followUp ? followupPresetMarkup(lead.reviewDate) + (!lead.reviewDate ? '<p class="validation-message">Choose a follow-up date before saving.</p>' : '') : '') + '</section>';
+  return heading(escapeHtml(lead.name), escapeHtml(contextLine(lead)) + ' · Generated by ' + escapeHtml(userName(lead.generatedByPartnerId || lead.partnerId)), '<button class="btn btn-secondary" data-route="' + (leadReturnRoute || 'leads') + '">‹ Back</button>') + '<div class="layout-grid"><div>' + home + milestone + outcomes + followupSection + '<section class="panel"><div class="section-title">Lead source</div><div class="form-grid"><div class="field"><label>Channel</label><select data-lead-profile-channel>' + CHANNELS.map(channel => '<option ' + (channel === (lead.channel || 'Unknown') ? 'selected' : '') + '>' + channel + '</option>').join('') + '</select></div><div class="field"><label>Event</label><select data-lead-profile-event><option value="">No specific Event</option>' + eventChoices + '</select></div></div><details style="margin-top:15px"><summary>History (' + (lead.history || []).length + ')</summary><div class="activity-list">' + history + '</div></details><div class="modal-actions"><button class="btn btn-secondary" data-action="archive-lead">Archive Lead</button><button class="btn btn-pink" data-action="save-lead">Save changes</button></div></section></div><div><section class="panel"><h2>Lead details</h2><p>' + escapeHtml(lead.homeStatus || 'Unknown') + ' · ' + escapeHtml(activityById(lead.activityId)?.name || 'No linked activity') + '</p><p class="small muted">Current owner: ' + escapeHtml(userName(lead.currentOwnerId || lead.partnerId)) + '</p>' + (lead.origin20KId ? '<p class="status sat">Origin: ' + escapeHtml(activityById(lead.activityId)?.name || 'Event') + ' · 20K</p>' : '') + '</section>' + owner + '</div></div>';
+}
+function inboxViewV07() {
+  const base = isConnectorAdmin() && leadScope === 'my' ? selectedLeads().filter(lead => (lead.currentOwnerId || lead.partnerId) === state.currentUserId) : selectedLeads();
+  const leads = needsUpdateLeads(base);
+  const rows = leads.map(lead => '<article class="lead-card inbox-card"><span class="activity-symbol warning-symbol">⚠</span><div class="lead-main"><strong>' + escapeHtml(lead.name) + '</strong><p>' + escapeHtml(contextLine(lead)) + (lead.appointmentDate ? ' · Appointment ' + prettyDate(lead.appointmentDate) : '') + '</p></div><div class="lead-actions"><span class="mark-as-label">Mark as:</span>' + [['Sat','Sat'],['Cancelled','Cancelled'],['Ghosted / No-show','Ghosted']].map(([value,label]) => '<button class="btn btn-secondary btn-sm" data-inbox-lead="' + lead.id + '" data-quick-outcome="' + value + '">' + label + '</button>').join('') + '</div></article>').join('');
+  return heading('Action Inbox', leads.length ? leads.length + ' Leads need an update.' : 'You’re up to date.', '<span class="badge pink">' + leads.length + ' to update</span>') + (isConnectorAdmin() ? '<div class="filter-row"><button class="filter-chip ' + (leadScope === 'my' ? 'active' : '') + '" data-lead-scope="my">My Inbox</button><button class="filter-chip ' + (leadScope === 'team' ? 'active' : '') + '" data-lead-scope="team">Team Inbox</button></div>' : '') + '<div class="lead-list">' + (rows || '<div class="empty-state"><strong>Inbox zero</strong>You are up to date.</div>') + '</div>';
+}
+async function boot() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register(new URL(`sw.js?version=${encodeURIComponent(APP.version)}`, document.baseURI)).catch(error => console.warn('Offline cache could not be installed.', error));
+  if (!demoMode) {
+    try {
+      cloudSession = await ConnectorTrackerCloud.restoreSession();
+      if (cloudSession) {
+        cloudConnectorId = cloudSession.connectors[0]?.id || '';
+        if (cloudConnectorId) { await reloadCloudWorkspace({ initial: true }); return; }
+        cloudSession = null;
+      }
+    } catch (error) { cloudError = error.message; }
+    renderCloudLogin();
+    return;
+  }
+  state = await loadState();
+  if (state.route === 'lead' || state.route === 'event' || state.route === 'eventfollowups') state.route = 'eventday';
+  state.activities ||= [];
+  state.twentyKRecords ||= [];
+  state.leads ||= [];
+  state.connectors ||= []; state.users ||= []; state.outbox ||= []; state.history ||= []; state.stats ||= []; state.commissionRules ||= [];
+  for (const item of state.connectors) { if (item.id === 'demo-connector') { item.primaryColor ||= '#c8102e'; item.accentColor ||= '#201b2c'; } }
+  for (const record of state.twentyKRecords) { record.version ||= 1; record.leadId ||= state.leads.find(lead => lead.origin20KId === record.id)?.id || null; }
+  state.leads.forEach(lead => {
+    if (lead.channel === 'In-person / 20K') lead.channel = '20K Event'; else if (!lead.channel) lead.channel = 'Unknown';
+    lead.generatedByPartnerId ||= lead.partnerId;
+    lead.currentOwnerId ||= lead.partnerId;
+    lead.origin20KId ||= lead.originating20kId || '';
+    lead.homeStatus ||= 'Unknown'; if (lead.homeStatus === 'Tenant') lead.homeStatus = 'Renting/Tenant';
+    if (lead.services?.insurance && lead.services.boilerCover === undefined) lead.services.boilerCover = true;
+    lead.progression ||= [];
+    if (!lead.progression.length) {
+      stageHistory(lead, 'Lead sent', lead.received || today);
+      if (lead.outcome === 'New customer' || lead.outcome === 'Existing UW customer helped') stageHistory(lead, 'Signed up', lead.received || today);
+      if (lead.appointment === 'Booked' || lead.appointment === 'Sat' || lead.appointment === 'Cancelled' || lead.appointment === 'Ghosted / No-show') stageHistory(lead, 'Booked', lead.received || today);
+      if (lead.appointment === 'Sat') stageHistory(lead, 'Sat', lead.received || today);
+    }
+    if (lead.appointment === 'Sat' || lead.appointment === 'Cancelled' || lead.appointment === 'Ghosted / No-show') lead.appointmentOutcome ||= lead.appointment;
+    lead.customerResult ||= lead.outcome || '';
+    lead.partnerResult ||= lead.becamePartner ? 'Became a UW Partner' : '';
+    if (lead.followUp && !lead.followUpReason) lead.followUpReason = lead.customerResult === 'No for now' && lead.partnerResult === 'No for now' ? 'Customer + Partner' : lead.partnerResult === 'No for now' ? 'Partner' : 'Customer';
+  });
+  for (const lead of state.leads) { const origin = state.twentyKRecords.find(record => record.id === lead.origin20KId); if (origin && !origin.leadId) origin.leadId = lead.id; }
+  state.customerResults ||= [];
+  if (!state.customerResults.length) state.customerResults = state.leads.filter(lead => lead.services).map(lead => ({ id: uid(), leadId: lead.id, connectorId: lead.connectorId, resultDate: lead.resultDate || lead.received, services: { ...lead.services }, partnerCommission: lead.partnerCommission || 0, connectorCommission: lead.connectorCommission || 0, ruleVersion: lead.commissionRuleVersion || 'TEST-2026-01', createdAt: lead.updatedAt || `${lead.received}T12:00:00.000Z` }));
+  if (!state.history.length) state.history = state.leads.flatMap(lead => (lead.history || []).map(entry => ({ id: uid(), connectorId: lead.connectorId, partnerId: lead.partnerId, summary: `${entry.action}: ${lead.name}`, timestamp: `${entry.date}T12:00:00.000Z` }))).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const reportToken = new URLSearchParams(location.search).get('report');
+  if (reportToken) {
+    const item = state.connectors.find(conn => conn.reportToken === reportToken);
+    publicReportOnly = true;
+    if (item) { state.selectedConnectorId = item.id; state.period = 'This month'; state.route = 'reports'; state.reportTab = 'shared'; }
+    else publicReportError = true;
+  }
+  history.replaceState({ route: state.route, leadFilter, activeLeadId, activeActivityId }, '', location.href);
+  await persist();
+  render();
+}
+
+app.addEventListener('submit', async event => {
+  const form = event.target;
+  if (form.id === 'tracker-login-form') {
+    event.preventDefault();
+    if (!window.ConnectorTrackerCloud?.configured || cloudBusy) return;
+    const formData = new FormData(form);
+    cloudPartnerIdDraft = String(formData.get('partnerId') || '').trim();
+    let password = String(formData.get('password') || '');
+    cloudBusy = true; cloudError = ''; renderCloudLogin();
+    try {
+      cloudSession = await ConnectorTrackerCloud.login(cloudPartnerIdDraft, password);
+      cloudConnectorId = cloudSession.connectors[0]?.id || '';
+      form.reset(); password = '';
+      if (cloudConnectorId) await reloadCloudWorkspace({ initial: true }); else { cloudBusy = false; renderCloudWorkspace(); }
+    } catch (error) { cloudSession = null; cloudCrmReady = false; cloudError = error.message; cloudBusy = false; password = ''; renderCloudLogin(); }
+    return;
+  }
+  if (form.id === 'cloud-connector-access-form') {
+    event.preventDefault();
+    if (!cloudSession || cloudBusy || !isConnectorAdmin()) return;
+    const data = new FormData(form);
+    cloudBusy = true; cloudError = ''; updateCloudIndicator();
+    try {
+      await ConnectorTrackerCloud.grantConnectorAccess(state.selectedConnectorId, String(data.get('partnerId') || '').trim(), String(data.get('role') || 'Editor'));
+      await reloadCloudWorkspace({ rerender: false });
+      showToast('Connector access updated');
+    } catch (error) { cloudSyncError = error.message; showToast('Access was not changed'); }
+    finally { cloudBusy = false; render(); }
+    return;
+  }
+  if (form.id !== 'cloud-test-form' || !cloudSession || cloudBusy) return;
+  event.preventDefault();
+  cloudMessage = String(new FormData(form).get('message') || '');
+  const expectedVersion = Number(cloudTestRecord?.version || 0);
+  cloudBusy = true; cloudError = ''; renderCloudWorkspace();
+  try {
+    const saved = await ConnectorTrackerCloud.saveTestRecord(cloudConnectorId, cloudMessage, expectedVersion);
+    const reread = await ConnectorTrackerCloud.getTestRecord(cloudConnectorId);
+    if (!saved.acknowledged || !reread || reread.version !== saved.record.version) throw new Error('Cloud acknowledged the save, but the follow-up read did not match.');
+    cloudTestRecord = reread; cloudMessage = reread.message; cloudError = '';
+  } catch (error) {
+    cloudError = error.message;
+    if (/session|sign in again|revoked|inactive|not authorised/i.test(error.message)) { cloudSession = null; cloudTestRecord = null; }
+  }
+  cloudBusy = false; renderCloudGate();
+});
+
+app.addEventListener('change', event => {
+  if (event.target.id !== 'cloud-connector-select' || cloudBusy) return;
+  cloudConnectorId = event.target.value;
+  cloudTestRecord = null; cloudMessage = '';
+  reloadCloudTestRecord();
+});
+
+app.addEventListener('click', async event => {
+  if (event.target.closest('[data-cloud-action="reload"]') && cloudSession && !cloudBusy) { cloudBusy = true; cloudError = ''; renderCloudGate(); await reloadCloudWorkspace({ rerender: true }); return; }
+  if (!event.target.closest('[data-cloud-action="logout"]') || cloudBusy) return;
+  cloudBusy = true; cloudError = ''; renderCloudWorkspace();
+  try { await ConnectorTrackerCloud.logout(); } catch (_) {}
+  cloudSession = null; cloudCrmReady = false; cloudBusy = false; cloudPartnerIdDraft = ''; cloudSyncError = ''; cloudSyncState = 'idle'; cloudVersions.clear();
+  renderCloudLogin();
+});
+
+boot();

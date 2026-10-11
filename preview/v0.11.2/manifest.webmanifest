@@ -1,0 +1,18 @@
+{
+  "name": "Connector Activity Tracker - Preview v0.11.2",
+  "short_name": "CAT Preview",
+  "description": "Authenticated, local-first Connector activity and results tracker with cloud synchronisation.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f6fa",
+  "theme_color": "#351065",
+  "icons": [
+    {
+      "src": "./icon.svg?v=0.11.2",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "scope": "./"
+}
