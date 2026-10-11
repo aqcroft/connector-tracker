@@ -24,3 +24,8 @@ button[data-set-progress="Lead sent"]{display:none}
 .inbox-card{flex-wrap:wrap}.inbox-card .lead-actions{width:100%;display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));gap:6px;margin-left:43px}.inbox-card .lead-actions:before{display:none}.mark-as-label{align-self:center;font-size:10px;font-weight:700;color:var(--muted)}.warning-symbol{background:#fff3e7;color:#bd6815}
 @media(max-width:760px){.home-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.result-stage-top{grid-template-columns:minmax(0,1fr) auto;gap:6px}.result-stage-top>strong{font-size:11px}.result-stage-top>div{grid-column:1;grid-row:2;font-size:11px}.result-stage-top>.btn{grid-column:2;grid-row:1/3}.result-stage-top em{margin-left:6px}.inbox-card{align-items:center}.inbox-card .lead-main{min-width:calc(100% - 55px)}.inbox-card .lead-actions{margin-left:0;grid-template-columns:auto repeat(3,minmax(0,1fr));gap:5px}.inbox-card .lead-actions .btn{min-width:0;padding:0 5px;font-size:9px}.mark-as-label{font-size:9px}.event-count-card{flex-direction:row;align-items:center}.event-day-actions{grid-template-columns:1fr}.outcome-grid .choice-card{font-size:9px;padding:8px 4px}.top-actions .inbox-top-button{min-width:35px;width:35px;padding:0}}
 .cloud-field input,.cloud-field select,.cloud-field textarea{font:inherit;font-size:13px}
+
+/* Shared CAT identity uses the UW Connector symbol; Connector-specific logos remain in context. */
+.cat-brand-icon {display:block;width:100%;height:100%;object-fit:contain;border-radius:10px}
+.brand-mark:has(.cat-brand-icon) {overflow:hidden;background:transparent;flex:none}
+.cloud-auth-brand .brand-mark:has(.cat-brand-icon) {overflow:hidden;background:transparent}

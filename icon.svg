@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="15" fill="#351065"/>
-  <circle cx="32" cy="32" r="21" fill="#f7931e" stroke="#fff" stroke-width="2"/>
-  <path d="M11 32h42M32 11v42M17 17c9 7 13 14 15 15m15-15c-9 7-13 14-15 15m-15 0c9 7 13 14 15 15m15-15c-9 7-13 14-15 15" fill="none" stroke="#351065" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 447 447" role="img" aria-label="UW Connectors">
+  <title>UW Connectors</title>
+  <rect width="447" height="447" rx="84" fill="#7a42c9"/>
+  <g fill="#fcfbf2">
+    <path d="M59 148 L59 244 L62 260 L71 277 L76 283 L90 293 L108 299 L137 298 L157 289 L172 273 L180 254 L181 148 L132 148 L132 242 L129 249 L121 253 L114 251 L109 245 L109 148 Z"/>
+    <path d="M192 148 L193 249 L198 264 L205 275 L221 289 L231 294 L247 298 L332 298 L346 295 L358 289 L377 271 L384 257 L387 243 L387 148 L337 148 L337 246 L330 253 L320 252 L314 243 L314 148 L265 148 L265 244 L257 253 L249 253 L242 246 L242 148 Z"/>
+  </g>
+  <path d="M331 316 C331 286 354 264 385 264 C416 264 435 286 435 315 C435 339 422 355 401 363 L404 391 L378 369 C349 367 331 347 331 316 Z" fill="#7a42c9" stroke="#fcfbf2" stroke-width="10" stroke-linejoin="round"/>
+  <g fill="#fcfbf2"><circle cx="362" cy="317" r="7"/><circle cx="385" cy="317" r="7"/><circle cx="408" cy="317" r="7"/></g>
 </svg>
