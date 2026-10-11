@@ -106,7 +106,9 @@ app.addEventListener('submit', event => {
     const record = { id: uid(), connectorId: activity.connectorId, activityId: activity.id, eventDate: activity.date, name, generatedByPartnerId: state.currentUserId, createdAt: now, updatedAt: now, leadId: null, version: 1 };
     state.twentyKRecords ||= []; state.twentyKRecords.unshift(record);
     commit('Added 20K for ' + record.name + ' at ' + activity.name, activity.connectorId, 'twenty-k', record.id, 'create', { ...record });
-    render(); openModal('20K saved', `<p><strong>${escapeHtml(record.name)}</strong> is recorded for <strong>${escapeHtml(activity.name)}</strong>. The 20K is counted whether or not a Lead follows.</p><p><strong>Have you also submitted a separate Connector Lead for this person?</strong></p><div class="modal-actions"><button type="button" class="btn btn-secondary" data-action="close-modal">20K only - not yet</button><button type="button" class="btn btn-primary" data-create-lead-from-twenty-k="${record.id}">Yes - Lead submitted</button></div>`); return;
+    render();
+    openModal('20K saved', `<p class="twenty-k-saved-message"><strong>${escapeHtml(record.name)}</strong> saved as a 20K.</p><p class="twenty-k-next-question">Connector Lead?</p><div class="twenty-k-next-actions" role="group" aria-label="Next step for this 20K"><button type="button" class="btn btn-secondary" data-action="close-modal">20K only</button><button type="button" class="btn btn-primary" data-add-lead-from-twenty-k="${record.id}">Add Lead now</button><button type="button" class="btn btn-secondary" data-create-lead-from-twenty-k="${record.id}">Connector Lead already added</button></div>`);
+    return;
   }
   const originId = String(data.get('origin20KId') || origin20KId || '');
   const origin = (state.twentyKRecords || []).find(record => record.id === originId);
@@ -701,7 +703,21 @@ document.addEventListener('click', async event => {
   if (target.dataset.action === 'new-todays-event') { activeActivityId = ''; createTodayEvent = true; navigate('newactivity'); return; }
   if (target.dataset.action === 'add-20k') { addQuickTwentyK(activeActivityId); return; }
   if (target.dataset.choose20k) { const record = state.twentyKRecords.find(item => item.id === target.dataset.choose20k); if (record && !record.leadId) { origin20KId = record.id; activeActivityId = record.activityId; forceUnlinkedLead = false; render(); } return; }
+  if (target.dataset.addLeadFromTwentyK) {
+    const record = (state.twentyKRecords || []).find(item => item.id === target.dataset.addLeadFromTwentyK);
+    if (!record || !hasAccess(record.connectorId)) { showToast('This 20K is no longer available'); return; }
+    if (record.leadId) { showToast('A Lead is already linked to this 20K'); return; }
+    closeModal();
+    state.selectedConnectorId = record.connectorId;
+    activeActivityId = record.activityId;
+    origin20KId = record.id;
+    forceUnlinkedLead = false;
+    leadReturnRoute = 'eventday';
+    navigate('newlead');
+    return;
+  }
   if (target.dataset.createLeadFromTwentyK || target.dataset.convert20k) {
+    closeModal();
     convertTwentyKToLead(target.dataset.createLeadFromTwentyK || target.dataset.convert20k);
     return;
   }

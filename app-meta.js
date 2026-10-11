@@ -1,7 +1,9 @@
 window.APP_META = {
-  version: '0.12.3',
+  version: '0.12.4',
   released: '2026-10-11',
   summary: [
+    'After recording a named 20K, choose 20K only, Add Lead now, or Connector Lead already added',
+    'Add Lead now opens the existing Lead form with the name and Event linked; saving returns to Event Day without double-counting the 20K',
     'CAT displays a visible loading screen immediately whilst restoring existing sessions, preventing blank startups',
     'Cloud requests have a 30-second deadline and transient network failures no longer erase remembered session tokens',
     'Critical Event Day 20K flow now requires a name before a record is created, and offers optional Lead confirmation after saving',
@@ -19,6 +21,7 @@ window.APP_META = {
     'Refreshed the UW-style CAT icon cache across the browser tab and PWA without touching Connector-specific logos or saved data'
   ],
   history: [
+    { version: '0.12.4', date: '2026-10-11', summary: 'Added a three-option mobile 20K next step with an immediate prefilled Lead form, and kept the existing Lead-submitted shortcut.' },
     { version: '0.12.3', date: '2026-10-11', summary: 'Added resilient visible startup and bounded cloud access requests with safer retry behaviour.' },
     { version: '0.12.2', date: '2026-10-11', summary: 'Fixed the first funnel stage: a 20K is saved only after a name is entered; a Connector Lead is an optional subsequent step.' },
     { version: '0.12.1', date: '2026-10-11', summary: 'Added scan-ready official Connector QR and link sharing for Leicester Dynamite and Miss England.' },
